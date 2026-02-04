@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat Code Quest - Gesture Controlled Game</title>
+    <meta name="description"
+        content="A gesture-controlled game where a cute cat collects code fragments using MediaPipe hand tracking">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="game-container">
+        <!-- Game Canvas -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Camera Preview -->
+        <div class="camera-panel">
+            <video id="webcam" autoplay playsinline></video>
+            <canvas id="handCanvas"></canvas>
+            <div class="camera-label">Hand Tracking</div>
+        </div>
+
+        <!-- Game UI -->
+        <div class="ui-panel top-left">
+            <div class="stat">
+                <span class="stat-icon">📜</span>
+                <span class="stat-label">Code Fragments</span>
+                <span id="fragmentCount" class="stat-value">0 / 5</span>
+            </div>
+        </div>
+
+        <div class="ui-panel top-right">
+            <div class="gesture-indicator">
+                <div id="gestureStatus" class="gesture-status">
+                    <span class="gesture-icon">✋</span>
+                    <span class="gesture-text">Show your hand</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions Panel -->
+        <div class="ui-panel bottom-center instructions">
+            <div class="instruction-item">
+                <span class="key">☝️ Index Finger</span>
+                <span class="action">Move Cat</span>
+            </div>
+            <div class="instruction-divider"></div>
+            <div class="instruction-item">
+                <span class="key">✋ Open Palm</span>
+                <span class="action">Collect Code</span>
+            </div>
+        </div>
+
+        <!-- Victory Screen -->
+        <div id="victoryScreen" class="victory-screen hidden">
+            <div class="victory-content">
+                <h1 class="victory-title">🎉 Victory!</h1>
+                <p class="victory-text">The cat unlocked the door!</p>
+                <p class="victory-subtext">All code fragments collected</p>
+                <button id="restartBtn" class="restart-btn">Play Again</button>
+            </div>
+        </div>
+
+        <!-- Loading Screen -->
+        <div id="loadingScreen" class="loading-screen">
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Loading MediaPipe...</p>
+                <p class="loading-subtext">Please allow camera access</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MediaPipe Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+        crossorigin="anonymous"></script>
+
+    <!-- Game Scripts -->
+    <script src="mediapipe-handler.js"></script>
+    <script src="game.js"></script>
+</body>
+
+</html>
