@@ -519,6 +519,164 @@ class Explosion {
     }
 }
 
+class GameButton {
+    constructor(x, y, width, height, label, callback) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.label = label;
+        this.callback = callback;
+        this.hoverProgress = 0;
+        this.isHovered = false;
+        this.clickProgress = 0;
+        this.activated = false;
+        this.hoverStartTime = null; // Track when hover started
+        this.fillDuration = 2000; // 2 seconds in milliseconds
+    }
+    
+    update(cursorX, cursorY, isInteracting) {
+        // Check if cursor is over button
+        const wasHovered = this.isHovered;
+        this.isHovered = cursorX >= this.x && cursorX <= this.x + this.width &&
+                        cursorY >= this.y && cursorY <= this.y + this.height;
+        
+        // Track hover timing for time-based progress
+        if (this.isHovered && !wasHovered) {
+            // Just started hovering
+            this.hoverStartTime = Date.now();
+        } else if (!this.isHovered && wasHovered) {
+            // Just stopped hovering
+            this.hoverStartTime = null;
+        }
+        
+        // Calculate time-based hover progress with ease-out curve
+        if (this.isHovered && this.hoverStartTime !== null) {
+            const elapsed = Date.now() - this.hoverStartTime;
+            const linearProgress = Math.min(elapsed / this.fillDuration, 1);
+            
+            // Ease-out cubic curve: slow at the end
+            // Formula: 1 - (1 - t)^3
+            this.hoverProgress = 1 - Math.pow(1 - linearProgress, 3);
+        } else if (!this.isHovered) {
+            // Fade out when not hovering (quick fade)
+            this.hoverProgress = Math.max(0, this.hoverProgress - 0.08);
+        }
+        
+        // Handle click animation
+        if (this.clickProgress > 0) {
+            this.clickProgress = Math.max(0, this.clickProgress - 0.1);
+        }
+        
+        // Auto-activate when completely filled (no interaction required)
+        if (this.isHovered && this.hoverProgress >= 1.0 && !this.activated) {
+            this.clickProgress = 1;
+            this.activated = true; // Prevent multiple activations
+            if (this.callback) {
+                this.callback();
+            }
+            return true;
+        }
+        
+        // Reset activation flag when not hovered
+        if (!this.isHovered) {
+            this.activated = false;
+        }
+        
+        return false;
+    }
+    
+    draw(ctx) {
+        ctx.save();
+        
+        // Button background with glassmorphic effect
+        const glowIntensity = this.hoverProgress;
+        
+        // Draw glow
+        if (glowIntensity > 0) {
+            ctx.shadowColor = `rgba(251, 191, 36, ${glowIntensity * 0.8})`;
+            ctx.shadowBlur = 30 * glowIntensity;
+        }
+        
+        // Draw button background
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.08 + glowIntensity * 0.05})`;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.15 + glowIntensity * 0.2})`;
+        ctx.lineWidth = 2;
+        
+        const radius = 16;
+        this.roundRect(ctx, this.x, this.y, this.width, this.height, radius);
+        ctx.fill();
+        ctx.stroke();
+        
+        // Draw fill effect (similar to door)
+        if (this.hoverProgress > 0) {
+            const fillHeight = this.height * this.hoverProgress;
+            ctx.save();
+            
+            // Create clipping region for rounded corners
+            this.roundRect(ctx, this.x, this.y, this.width, this.height, radius);
+            ctx.clip();
+            
+            // Fill from bottom to top
+            const gradient = ctx.createLinearGradient(
+                this.x, this.y + this.height, 
+                this.x, this.y + this.height - fillHeight
+            );
+            gradient.addColorStop(0, `rgba(251, 191, 36, ${0.3 * this.hoverProgress})`);
+            gradient.addColorStop(1, `rgba(251, 191, 36, ${0.15 * this.hoverProgress})`);
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(
+                this.x, 
+                this.y + this.height - fillHeight, 
+                this.width, 
+                fillHeight
+            );
+            
+            ctx.restore();
+        }
+        
+        // Draw click feedback
+        if (this.clickProgress > 0) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${this.clickProgress * 0.2})`;
+            this.roundRect(ctx, this.x, this.y, this.width, this.height, radius);
+            ctx.fill();
+        }
+        
+        // Draw text
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = this.hoverProgress > 0.5 ? '#fbbf24' : '#ffffff';
+        ctx.font = '700 24px Outfit, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Add text glow when hovered
+        if (glowIntensity > 0.3) {
+            ctx.shadowColor = `rgba(251, 191, 36, ${glowIntensity})`;
+            ctx.shadowBlur = 10;
+        }
+        
+        ctx.fillText(this.label, this.x + this.width / 2, this.y + this.height / 2);
+        
+        ctx.restore();
+    }
+    
+    roundRect(ctx, x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+    }
+}
+
 
 class Game {
     constructor() {
@@ -535,6 +693,14 @@ class Game {
         this.lives = CONFIG.maxLives;
         this.gameWon = false;
         this.gameLost = false;
+        
+        // End screen state
+        this.showEndScreen = false;
+        this.endScreenButtons = [];
+        this.endScreenTitle = '';
+        this.endScreenSubtitle = '';
+        this.cursorX = 0;
+        this.cursorY = 0;
         
         this.isRunning = false;
         
@@ -573,6 +739,18 @@ class Game {
         // Setup canvas size
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
+        
+        // Add mouse event listeners for cursor tracking
+        this.canvas.addEventListener('mousemove', (e) => {
+            const rect = this.canvas.getBoundingClientRect();
+            this.cursorX = e.clientX - rect.left;
+            this.cursorY = e.clientY - rect.top;
+        });
+        
+        this.canvas.addEventListener('click', (e) => {
+            // Mouse click is handled automatically by the button hover system
+            // We just need to track cursor position, which is done in mousemove
+        });
         
         // Initialize MediaPipe
         const videoElement = document.getElementById('webcam');
@@ -744,9 +922,25 @@ class Game {
     }
     
     update() {
-        if (this.gameWon || this.gameLost) return;
-        
         const gesture = this.mediapipe.getGestureState();
+        
+        // Update cursor position from hand tracking - direct position mapping
+        if (gesture.handDetected && gesture.fingerPosition) {
+            // Map normalized finger position (0-1) to canvas coordinates
+            this.cursorX = gesture.fingerPosition.x * this.canvas.width;
+            this.cursorY = gesture.fingerPosition.y * this.canvas.height;
+        }
+        
+        // Handle end screen interactions
+        if (this.showEndScreen) {
+            for (const button of this.endScreenButtons) {
+                button.update(this.cursorX, this.cursorY, gesture.isInteracting);
+            }
+            return;
+        }
+        
+        // Normal game update
+        if (this.gameWon || this.gameLost) return;
         
         // Update gesture UI
         this.updateGestureUI(gesture);
@@ -830,6 +1024,11 @@ class Game {
         
         // Draw cat
         this.cat.draw(this.ctx);
+        
+        // Draw end screen overlay if active
+        if (this.showEndScreen) {
+            this.drawEndScreen();
+        }
     }
     
     drawGrid() {
@@ -849,6 +1048,78 @@ class Game {
             this.ctx.moveTo(0, y);
             this.ctx.lineTo(this.canvas.width, y);
             this.ctx.stroke();
+        }
+    }
+    
+    drawEndScreen() {
+        // Semi-transparent overlay
+        this.ctx.fillStyle = 'rgba(10, 10, 26, 0.85)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Title
+        this.ctx.save();
+        this.ctx.font = '700 72px Outfit, sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        
+        // Gradient text
+        const titleGradient = this.ctx.createLinearGradient(
+            0, this.canvas.height * 0.25,
+            0, this.canvas.height * 0.35
+        );
+        titleGradient.addColorStop(0, '#fbbf24');
+        titleGradient.addColorStop(1, '#ff6b9d');
+        
+        this.ctx.fillStyle = titleGradient;
+        this.ctx.shadowColor = 'rgba(251, 191, 36, 0.4)';
+        this.ctx.shadowBlur = 30;
+        this.ctx.fillText(this.endScreenTitle, this.canvas.width / 2, this.canvas.height * 0.3);
+        
+        // Subtitle
+        this.ctx.shadowBlur = 0;
+        this.ctx.font = '600 24px Outfit, sans-serif';
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.fillText(this.endScreenSubtitle, this.canvas.width / 2, this.canvas.height * 0.4);
+        
+        this.ctx.restore();
+        
+        // Draw buttons
+        for (const button of this.endScreenButtons) {
+            button.draw(this.ctx);
+        }
+        
+        // Draw cursor at finger position
+        const gesture = this.mediapipe.getGestureState();
+        if (gesture.handDetected) {
+            this.ctx.save();
+            
+            // Outer glow
+            const gradient = this.ctx.createRadialGradient(
+                this.cursorX, this.cursorY, 0,
+                this.cursorX, this.cursorY, 30
+            );
+            gradient.addColorStop(0, gesture.isInteracting ? 'rgba(255, 107, 157, 0.6)' : 'rgba(34, 211, 238, 0.6)');
+            gradient.addColorStop(1, 'rgba(34, 211, 238, 0)');
+            
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.arc(this.cursorX, this.cursorY, 30, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Inner circle
+            this.ctx.fillStyle = gesture.isInteracting ? '#ff6b9d' : '#22d3ee';
+            this.ctx.beginPath();
+            this.ctx.arc(this.cursorX, this.cursorY, 8, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Ring
+            this.ctx.strokeStyle = '#ffffff';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.arc(this.cursorX, this.cursorY, 12, 0, Math.PI * 2);
+            this.ctx.stroke();
+            
+            this.ctx.restore();
         }
     }
     
@@ -909,17 +1180,36 @@ class Game {
     loseGame() {
         this.gameLost = true;
         this.bgMusic.pause();
-        const lossScreen = document.getElementById('victoryScreen');
-        lossScreen.classList.remove('hidden');
-        lossScreen.innerHTML = `
-            <div class="victory-content">
-                <h1 class="victory-title">💥 Game Over!</h1>
-                <p class="victory-text">The cat hit all the bombs!</p>
-                <p class="victory-subtext">Try again and avoid the explosions</p>
-                <button id="restartBtn" class="restart-btn">Play Again</button>
-            </div>
-        `;
-        document.getElementById('restartBtn').addEventListener('click', () => this.restartGame());
+        
+        // Initialize cursor to center of screen
+        this.cursorX = this.canvas.width / 2;
+        this.cursorY = this.canvas.height / 2;
+        
+        // Set up end screen
+        this.endScreenTitle = '💥 Game Over!';
+        this.endScreenSubtitle = 'The cat hit all the bombs!';
+        this.showEndScreen = true;
+        
+        // Create buttons
+        const buttonWidth = 250;
+        const buttonHeight = 70;
+        const buttonSpacing = 30;
+        const totalWidth = buttonWidth * 2 + buttonSpacing;
+        const startX = (this.canvas.width - totalWidth) / 2;
+        const buttonY = this.canvas.height * 0.6;
+        
+        this.endScreenButtons = [
+            new GameButton(
+                startX, buttonY, buttonWidth, buttonHeight,
+                'Restart Game',
+                () => this.restartGame()
+            ),
+            new GameButton(
+                startX + buttonWidth + buttonSpacing, buttonY, buttonWidth, buttonHeight,
+                'Quest Game',
+                () => console.log('Quest game coming soon!')
+            )
+        ];
     }
     
     winGame() {
@@ -932,11 +1222,41 @@ class Game {
             console.log('Could not play win sound:', error);
         });
         
-        this.victoryScreen.classList.remove('hidden');
+        // Initialize cursor to center of screen
+        this.cursorX = this.canvas.width / 2;
+        this.cursorY = this.canvas.height / 2;
+        
+        // Set up end screen
+        this.endScreenTitle = '🎉 Victory!';
+        this.endScreenSubtitle = 'All code fragments collected!';
+        this.showEndScreen = true;
+        
+        // Create buttons
+        const buttonWidth = 250;
+        const buttonHeight = 70;
+        const buttonSpacing = 30;
+        const totalWidth = buttonWidth * 2 + buttonSpacing;
+        const startX = (this.canvas.width - totalWidth) / 2;
+        const buttonY = this.canvas.height * 0.6;
+        
+        this.endScreenButtons = [
+            new GameButton(
+                startX, buttonY, buttonWidth, buttonHeight,
+                'Restart Game',
+                () => this.restartGame()
+            ),
+            new GameButton(
+                startX + buttonWidth + buttonSpacing, buttonY, buttonWidth, buttonHeight,
+                'Quest Game',
+                () => console.log('Quest game coming soon!')
+            )
+        ];
     }
     
     restartGame() {
-        this.victoryScreen.classList.add('hidden');
+        // Reset end screen state
+        this.showEndScreen = false;
+        this.endScreenButtons = [];
         
         // Stop win sound
         this.winSound.pause();
