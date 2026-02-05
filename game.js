@@ -221,10 +221,11 @@ class Cat {
 }
 
 class CodeFragment {
-    constructor(x, y, index) {
+    constructor(x, y, index, sprite) {
         this.x = x;
         this.y = y;
         this.index = index;
+        this.sprite = sprite;
         this.size = CONFIG.fragmentSize;
         this.collected = false;
         this.pulseOffset = Math.random() * Math.PI * 2;
@@ -237,12 +238,12 @@ class CodeFragment {
         
         const dist = Math.hypot(catX - this.x, catY - this.y);
         
-        // Increase glow when cat is nearby
-        if (dist < CONFIG.interactionRadius) {
+        // Increase glow when cat is nearby (bigger detection radius)
+        if (dist < CONFIG.interactionRadius * 1.5) {
             this.glowIntensity = Math.min(1, this.glowIntensity + 0.1);
             
-            // Collect if interacting (open palm)
-            if (isInteracting && dist < CONFIG.interactionRadius * 0.7) {
+            // Collect if interacting (open palm) - bigger collision radius
+            if (isInteracting && dist < CONFIG.interactionRadius * 1.2) {
                 this.collected = true;
                 return true;
             }
@@ -266,24 +267,36 @@ class CodeFragment {
         // Draw glow
         const glowSize = this.size * pulse * (1 + this.glowIntensity * 0.5);
         const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, glowSize);
-        gradient.addColorStop(0, `rgba(34, 211, 238, ${0.4 + this.glowIntensity * 0.4})`);
-        gradient.addColorStop(0.5, `rgba(168, 85, 247, ${0.2 + this.glowIntensity * 0.2})`);
-        gradient.addColorStop(1, 'rgba(168, 85, 247, 0)');
+        gradient.addColorStop(0, `rgba(251, 191, 36, ${0.2 + this.glowIntensity * 0.2})`);
+        gradient.addColorStop(0.5, `rgba(255, 215, 0, ${0.1 + this.glowIntensity * 0.1})`);
+        gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
         
         ctx.beginPath();
         ctx.arc(0, 0, glowSize, 0, Math.PI * 2);
         ctx.fillStyle = gradient;
         ctx.fill();
         
-        // Draw code fragment icon
-        const iconSize = this.size * 0.6 * pulse;
-        ctx.font = `${iconSize}px monospace`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#22d3ee';
-        ctx.shadowColor = '#22d3ee';
-        ctx.shadowBlur = 15 + this.glowIntensity * 10;
-        ctx.fillText('{ }', 0, 0);
+        // Draw key sprite
+        ctx.scale(pulse, pulse);
+        if (this.sprite && this.sprite.complete) {
+            const keySize = this.size * 1.2;
+            ctx.drawImage(
+                this.sprite,
+                -keySize / 2,
+                -keySize / 2,
+                keySize,
+                keySize
+            );
+        } else {
+            // Fallback: draw a simple key shape
+            ctx.fillStyle = '#ffd56bff';
+            ctx.shadowColor = '#ffd56bff';
+            ctx.shadowBlur = 15 + this.glowIntensity * 10;
+            ctx.font = `${this.size * 0.6}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🔑', 0, 0);
+        }
         
         ctx.restore();
     }
@@ -541,6 +554,10 @@ class Game {
         this.bombSprite = new Image();
         this.bombSprite.src = 'bomb.svg';
         
+        // Load key sprite
+        this.keySprite = new Image();
+        this.keySprite.src = 'Key.svg';
+        
         this.init();
     }
     
@@ -647,7 +664,7 @@ class Game {
         for (let i = 0; i < CONFIG.totalFragments; i++) {
             const pos = this.getRandomPosition(w, h, usedPositions, 100);
             usedPositions.push(pos);
-            this.fragments.push(new CodeFragment(pos.x, pos.y, i));
+            this.fragments.push(new CodeFragment(pos.x, pos.y, i, this.keySprite));
         }
         
         // Create bombs at random positions
