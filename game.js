@@ -1399,7 +1399,7 @@ class Game {
         
         // Set up end screen
         this.endScreenTitle = '🎉 Victory!';
-        this.endScreenSubtitle = 'All code fragments collected!';
+        this.endScreenSubtitle = 'All keys collected!';
         this.showEndScreen = true;
         
         // Create buttons
