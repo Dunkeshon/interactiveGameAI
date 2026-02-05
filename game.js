@@ -19,6 +19,62 @@ const CONFIG = {
 
 // ===== Game Classes =====
 
+class Heart {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 3;
+        this.vy = -Math.random() * 2 - 1;
+        this.age = 0;
+        this.lifetime = 60; // frames
+        this.scale = 1;
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.1; // gravity
+        this.age++;
+        
+        // Fade out and shrink
+        this.scale = 1 - (this.age / this.lifetime);
+    }
+
+    draw(ctx) {
+        const progress = this.age / this.lifetime;
+        const opacity = 1 - progress;
+        
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.globalAlpha = opacity;
+        ctx.scale(this.scale, this.scale);
+        
+        // Draw pink heart shape
+        const size = 8;
+        ctx.fillStyle = '#ff6b9d';
+        ctx.beginPath();
+        
+        // Heart shape
+        ctx.moveTo(0, -size * 0.5);
+        ctx.bezierCurveTo(-size, -size, -size, 0, 0, size * 0.7);
+        ctx.bezierCurveTo(size, 0, size, -size, 0, -size * 0.5);
+        ctx.closePath();
+        
+        ctx.fill();
+        
+        // Add glow
+        ctx.strokeStyle = `rgba(255, 107, 157, ${opacity * 0.5})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+
+    isAlive() {
+        return this.age < this.lifetime;
+    }
+}
+
 class Cat {
     constructor(x, y, sprite) {
         this.x = x;
@@ -36,6 +92,10 @@ class Cat {
         this.velocityY = 0;
         this.squashX = 1;
         this.squashY = 1;
+        
+        // Hearts animation
+        this.hearts = [];
+        this.heartSpawnCounter = 0;
     }
     
     update(direction, canvasWidth, canvasHeight) {
@@ -96,11 +156,38 @@ class Cat {
             this.squashY += (1 - this.squashY) * 0.15;
         }
         
+        // Spawn hearts when running
+        if (speed > 0.5) {
+            this.heartSpawnCounter++;
+            if (this.heartSpawnCounter >= 3) {
+                // Spawn a heart at a random offset from the cat
+                const offsetDistance = this.size * 0.5;
+                const offsetAngle = Math.random() * Math.PI * 2;
+                const heartX = this.x + Math.cos(offsetAngle) * offsetDistance;
+                const heartY = this.y + Math.sin(offsetAngle) * offsetDistance;
+                this.hearts.push(new Heart(heartX, heartY));
+                this.heartSpawnCounter = 0;
+            }
+        } else {
+            this.heartSpawnCounter = 0;
+        }
+        
+        // Update hearts
+        this.hearts = this.hearts.filter(heart => {
+            heart.update();
+            return heart.isAlive();
+        });
+        
         // Bobbing animation
         this.bobOffset = Math.sin(Date.now() * this.bobSpeed) * 3;
     }
     
     draw(ctx) {
+        // Draw hearts first (behind the cat)
+        for (const heart of this.hearts) {
+            heart.draw(ctx);
+        }
+        
         ctx.save();
         ctx.translate(this.x, this.y + this.bobOffset);
         
