@@ -546,6 +546,14 @@ class Game {
         this.restartBtn = document.getElementById('restartBtn');
         this.livesEl = document.getElementById('lives');
         
+        // Background Music
+        this.bgMusic = document.getElementById('bgMusic');
+        this.bgMusic.volume = 0.5; // Set volume to 50%
+        
+        // Win Sound
+        this.winSound = document.getElementById('winSound');
+        this.winSound.volume = 0.7; // Set volume to 70%
+        
         // Load cat sprite
         this.catSprite = new Image();
         this.catSprite.src = 'cat_sprite.png';
@@ -680,6 +688,12 @@ class Game {
     startGame() {
         this.setupLevel();
         this.isRunning = true;
+        
+        // Start background music
+        this.bgMusic.play().catch(error => {
+            console.log('Could not autoplay music:', error);
+        });
+        
         this.gameLoop();
     }
     
@@ -894,6 +908,7 @@ class Game {
     
     loseGame() {
         this.gameLost = true;
+        this.bgMusic.pause();
         const lossScreen = document.getElementById('victoryScreen');
         lossScreen.classList.remove('hidden');
         lossScreen.innerHTML = `
@@ -909,12 +924,33 @@ class Game {
     
     winGame() {
         this.gameWon = true;
+        this.bgMusic.pause();
+        
+        // Play win sound
+        this.winSound.currentTime = 0;
+        this.winSound.play().catch(error => {
+            console.log('Could not play win sound:', error);
+        });
+        
         this.victoryScreen.classList.remove('hidden');
     }
     
     restartGame() {
         this.victoryScreen.classList.add('hidden');
+        
+        // Stop win sound
+        this.winSound.pause();
+        this.winSound.currentTime = 0;
+        
+        // Reset and play background music
+        this.bgMusic.currentTime = 0;
         this.setupLevel();
+        this.isRunning = true;
+        
+        // Resume music
+        this.bgMusic.play().catch(error => {
+            console.log('Could not play music:', error);
+        });
     }
 }
 
