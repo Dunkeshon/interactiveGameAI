@@ -338,41 +338,125 @@ class Door {
         ctx.save();
         ctx.translate(this.x, this.y);
         
-        // Draw door frame
-        const frameWidth = this.width + 20;
-        const frameHeight = this.height + 20;
+        // Draw wall/frame
+        const frameWidth = this.width + 40;
+        const frameHeight = this.height + 40;
         
-        ctx.fillStyle = '#3f3f5a';
+        // Wall background with stone texture
+        const wallGradient = ctx.createLinearGradient(-frameWidth / 2, -frameHeight / 2, -frameWidth / 2, frameHeight / 2);
+        wallGradient.addColorStop(0, '#2a2a3e');
+        wallGradient.addColorStop(0.5, '#1f1f2e');
+        wallGradient.addColorStop(1, '#2a2a3e');
+        ctx.fillStyle = wallGradient;
         ctx.fillRect(-frameWidth / 2, -frameHeight / 2, frameWidth, frameHeight);
         
-        // Draw door
-        const doorColor = this.isUnlocked ? '#fbbf24' : '#6b7280';
-        const glow = this.isUnlocked ? 'rgba(251, 191, 36, 0.5)' : 'transparent';
+        // Stone texture pattern
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.lineWidth = 1;
+        for (let i = -frameWidth / 2; i < frameWidth / 2; i += 15) {
+            ctx.beginPath();
+            ctx.moveTo(i, -frameHeight / 2);
+            ctx.lineTo(i, frameHeight / 2);
+            ctx.stroke();
+        }
+        for (let i = -frameHeight / 2; i < frameHeight / 2; i += 15) {
+            ctx.beginPath();
+            ctx.moveTo(-frameWidth / 2, i);
+            ctx.lineTo(frameWidth / 2, i);
+            ctx.stroke();
+        }
         
-        ctx.shadowColor = glow;
-        ctx.shadowBlur = 20;
+        // Door frame (wooden)
+        ctx.fillStyle = '#8b6f47';
+        ctx.fillRect(-this.width / 2 - 8, -this.height / 2 - 8, this.width + 16, this.height + 16);
+        
+        // Door frame shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fillRect(-this.width / 2 - 8, -this.height / 2 - 8, this.width + 16, 8);
+        
+        // Door main panel
+        const doorColor = this.isUnlocked ? '#d4a574' : '#8b6f47';
+        const doorGradient = ctx.createLinearGradient(-this.width / 2, -this.height / 2, this.width / 2, -this.height / 2);
+        doorGradient.addColorStop(0, '#6b5835');
+        doorGradient.addColorStop(0.5, doorColor);
+        doorGradient.addColorStop(1, '#6b5835');
         
         // Animate door opening (swing effect)
         if (this.openProgress > 0) {
             ctx.save();
             ctx.translate(-this.width / 2, 0);
-            ctx.scale(1 - this.openProgress * 0.8, 1);
+            ctx.scale(1 - this.openProgress * 0.85, 1);
             ctx.translate(this.width / 2, 0);
         }
         
-        ctx.fillStyle = doorColor;
+        ctx.fillStyle = doorGradient;
         ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
         
-        // Draw lock/unlock indicator
-        const indicatorY = 0;
-        ctx.font = '24px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = this.isUnlocked ? '#1a1a2e' : '#9ca3af';
-        ctx.fillText(this.isUnlocked ? '🔓' : '🔒', 0, indicatorY);
+        // Door panels (detail lines)
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.lineWidth = 2;
+        // Vertical panel dividers
+        ctx.beginPath();
+        ctx.moveTo(-this.width / 4, -this.height / 2 + 10);
+        ctx.lineTo(-this.width / 4, this.height / 2 - 10);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(this.width / 4, -this.height / 2 + 10);
+        ctx.lineTo(this.width / 4, this.height / 2 - 10);
+        ctx.stroke();
+        
+        // Horizontal panel dividers
+        ctx.beginPath();
+        ctx.moveTo(-this.width / 2 + 10, -this.height / 4);
+        ctx.lineTo(this.width / 2 - 10, -this.height / 4);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(-this.width / 2 + 10, this.height / 4);
+        ctx.lineTo(this.width / 2 - 10, this.height / 4);
+        ctx.stroke();
+        
+        // Door handle (brass knob)
+        const handleX = this.width / 2 - 20;
+        const handleY = 0;
+        
+        // Handle glow when unlocked
+        if (this.isUnlocked) {
+            const handleGlow = ctx.createRadialGradient(handleX, handleY, 0, handleX, handleY, 15);
+            handleGlow.addColorStop(0, 'rgba(251, 191, 36, 0.6)');
+            handleGlow.addColorStop(1, 'rgba(251, 191, 36, 0)');
+            ctx.fillStyle = handleGlow;
+            ctx.beginPath();
+            ctx.arc(handleX, handleY, 15, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Handle knob
+        const handleGradient = ctx.createRadialGradient(handleX - 3, handleY - 3, 0, handleX, handleY, 8);
+        handleGradient.addColorStop(0, '#ffd700');
+        handleGradient.addColorStop(0.7, '#daa520');
+        handleGradient.addColorStop(1, '#b8860b');
+        ctx.fillStyle = handleGradient;
+        ctx.beginPath();
+        ctx.arc(handleX, handleY, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Handle shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.beginPath();
+        ctx.arc(handleX + 2, handleY + 2, 6, 0, Math.PI * 2);
+        ctx.fill();
         
         if (this.openProgress > 0) {
             ctx.restore();
+        }
+        
+        // Glow when unlocked
+        if (this.isUnlocked) {
+            ctx.strokeStyle = `rgba(251, 191, 36, ${0.4 * (1 - this.openProgress)})`;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(-this.width / 2 - 12, -this.height / 2 - 12, this.width + 24, this.height + 24);
         }
         
         ctx.restore();
@@ -712,8 +796,8 @@ class Game {
         // Create cat at center-left
         this.cat = new Cat(w * 0.15, h * 0.5, this.catSprite);
         
-        // Create door at right side
-        this.door = new Door(w * 0.9, h * 0.5);
+        // Create door at right side (moved down)
+        this.door = new Door(w * 0.9, h * 0.62);
         
         // Create code fragments at random positions
         this.fragments = [];
