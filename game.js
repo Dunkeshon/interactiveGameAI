@@ -11,7 +11,10 @@ const CONFIG = {
     doorWidth: 80,
     doorHeight: 120,
     interactionRadius: 100,
-    totalFragments: 5
+    totalFragments: 5,
+    bombSize: 50,
+    totalBombs: 8,
+    maxLives: 3
 };
 
 // ===== Game Classes =====
@@ -230,7 +233,146 @@ class Door {
     }
 }
 
-// ===== Main Game Class =====
+class Bomb {
+    constructor(x, y, index, sprite) {
+        this.x = x;
+        this.y = y;
+        this.index = index;
+        this.sprite = sprite;
+        this.size = CONFIG.bombSize;
+        this.touched = false;
+        this.pulseOffset = Math.random() * Math.PI * 2;
+        this.floatOffset = Math.random() * Math.PI * 2;
+        this.warningIntensity = 0;
+    }
+    
+    update(catX, catY) {
+        if (this.touched) return false;
+        
+        const dist = Math.hypot(catX - this.x, catY - this.y);
+        
+        // Check collision with cat
+        if (dist < this.size * 1.5) {
+            this.touched = true;
+            return true; // Signal collision
+        }
+        
+        // Increase warning glow when cat is nearby
+        if (dist < CONFIG.interactionRadius * 1.5) {
+            this.warningIntensity = Math.min(1, this.warningIntensity + 0.1);
+        } else {
+            this.warningIntensity = Math.max(0, this.warningIntensity - 0.05);
+        }
+        
+        return false;
+    }
+    
+    draw(ctx) {
+        if (this.touched) return;
+        
+        const time = Date.now() * 0.003;
+        const pulse = 1 + Math.sin(time + this.pulseOffset) * 0.08;
+        const float = Math.sin(time * 0.5 + this.floatOffset) * 4;
+        
+        ctx.save();
+        ctx.translate(this.x, this.y + float);
+        
+        // Draw warning glow around bomb
+        if (this.warningIntensity > 0.2) {
+            const glowSize = this.size * 0.8 * (1 + this.warningIntensity * 0.6);
+            const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, glowSize);
+            gradient.addColorStop(0, `rgba(239, 68, 68, ${0.3 + this.warningIntensity * 0.3})`);
+            gradient.addColorStop(0.5, `rgba(220, 38, 38, ${0.1 + this.warningIntensity * 0.2})`);
+            gradient.addColorStop(1, 'rgba(220, 38, 38, 0)');
+            
+            ctx.beginPath();
+            ctx.arc(0, 0, glowSize, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+        }
+        
+        // Draw SVG bomb sprite with pulse animation
+        ctx.scale(pulse, pulse);
+        if (this.sprite && this.sprite.complete) {
+            ctx.drawImage(
+                this.sprite,
+                -this.size / 2,
+                -this.size / 2,
+                this.size,
+                this.size
+            );
+        } else {
+            // Fallback if sprite not loaded
+            ctx.fillStyle = '#384C59';
+            ctx.beginPath();
+            ctx.arc(0, 0, this.size * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        ctx.restore();
+    }
+}
+
+class Explosion {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.time = 0;
+        this.duration = 0.5; // seconds
+    }
+    
+    update() {
+        this.time += 1 / 60; // Assume 60 FPS
+        return this.time >= this.duration;
+    }
+    
+    draw(ctx) {
+        const progress = this.time / this.duration;
+        
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        
+        // Outer blast wave
+        const outerRadius = 150 * progress;
+        const outerAlpha = Math.max(0, 1 - progress);
+        
+        const outerGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, outerRadius);
+        outerGradient.addColorStop(0, `rgba(251, 191, 36, ${outerAlpha * 0.6})`);
+        outerGradient.addColorStop(0.5, `rgba(239, 68, 68, ${outerAlpha * 0.4})`);
+        outerGradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
+        
+        ctx.beginPath();
+        ctx.arc(0, 0, outerRadius, 0, Math.PI * 2);
+        ctx.fillStyle = outerGradient;
+        ctx.fill();
+        
+        // Inner flame burst
+        const innerRadius = 80 * (1 - progress);
+        const innerAlpha = Math.max(0, 1 - progress * 1.5);
+        
+        ctx.fillStyle = `rgba(255, 107, 157, ${innerAlpha * 0.8})`;
+        ctx.beginPath();
+        ctx.arc(0, 0, innerRadius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Spark particles
+        for (let i = 0; i < 16; i++) {
+            const angle = (i / 16) * Math.PI * 2;
+            const distance = 120 * progress;
+            const x = Math.cos(angle) * distance;
+            const y = Math.sin(angle) * distance;
+            
+            const sparkSize = 8 * (1 - progress);
+            ctx.fillStyle = `rgba(251, 191, 36, ${(1 - progress) * 0.7})`;
+            ctx.beginPath();
+            ctx.arc(x, y, sparkSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        ctx.restore();
+    }
+}
+
 
 class Game {
     constructor() {
@@ -240,9 +382,13 @@ class Game {
         
         this.cat = null;
         this.fragments = [];
+        this.bombs = [];
+        this.explosions = [];
         this.door = null;
         this.collectedCount = 0;
+        this.lives = CONFIG.maxLives;
         this.gameWon = false;
+        this.gameLost = false;
         
         this.isRunning = false;
         
@@ -252,10 +398,15 @@ class Game {
         this.victoryScreen = document.getElementById('victoryScreen');
         this.loadingScreen = document.getElementById('loadingScreen');
         this.restartBtn = document.getElementById('restartBtn');
+        this.livesEl = document.getElementById('lives');
         
         // Load cat sprite
         this.catSprite = new Image();
         this.catSprite.src = 'dunkeshon_simle_2d_cat_caracter_--ar_43_--profile_rj7bfu1_--v_a1df40df-3922-4cdb-8b19-c3b01efaebfa_2.png';
+        
+        // Load bomb sprite
+        this.bombSprite = new Image();
+        this.bombSprite.src = 'bomb.svg';
         
         this.init();
     }
@@ -323,8 +474,33 @@ class Game {
             ));
         }
         
+        // Create bombs scattered around
+        this.bombs = [];
+        const bombPositions = [
+            { x: w * 0.25, y: h * 0.3 },
+            { x: w * 0.75, y: h * 0.25 },
+            { x: w * 0.55, y: h * 0.4 },
+            { x: w * 0.3, y: h * 0.65 },
+            { x: w * 0.85, y: h * 0.7 },
+            { x: w * 0.65, y: h * 0.75 },
+            { x: w * 0.4, y: h * 0.2 },
+            { x: w * 0.7, y: h * 0.55 }
+        ];
+        
+        for (let i = 0; i < CONFIG.totalBombs; i++) {
+            this.bombs.push(new Bomb(
+                bombPositions[i].x,
+                bombPositions[i].y,
+                i,
+                this.bombSprite
+            ));
+        }
+        
+        this.explosions = [];
         this.collectedCount = 0;
+        this.lives = CONFIG.maxLives;
         this.gameWon = false;
+        this.gameLost = false;
         this.updateUI();
     }
     
@@ -338,15 +514,16 @@ class Game {
     }
     
     update() {
-        if (this.gameWon) return;
+        if (this.gameWon || this.gameLost) return;
         
         const gesture = this.mediapipe.getGestureState();
         
         // Update gesture UI
         this.updateGestureUI(gesture);
         
-        // Update cat (stop movement when interacting)
-        const moveDirection = gesture.isInteracting ? { x: 0, y: 0 } : gesture.direction;
+        // Update cat (stop movement when interacting or no hand detected)
+        const shouldMove = gesture.handDetected && !gesture.isInteracting;
+        const moveDirection = shouldMove ? gesture.direction : { x: 0, y: 0 };
         this.cat.update(moveDirection, this.canvas.width, this.canvas.height);
         
         // Update fragments
@@ -361,6 +538,23 @@ class Game {
                 }
             }
         }
+        
+        // Update bombs and check collisions
+        for (const bomb of this.bombs) {
+            if (bomb.update(this.cat.x, this.cat.y)) {
+                // Bomb touched!
+                this.explosions.push(new Explosion(bomb.x, bomb.y));
+                this.lives--;
+                this.updateUI();
+                
+                if (this.lives <= 0) {
+                    this.loseGame();
+                }
+            }
+        }
+        
+        // Update explosions
+        this.explosions = this.explosions.filter(explosion => !explosion.update());
         
         // Update door
         if (this.door.update(this.cat.x, this.cat.y)) {
@@ -394,6 +588,16 @@ class Game {
             fragment.draw(this.ctx);
         }
         
+        // Draw bombs
+        for (const bomb of this.bombs) {
+            bomb.draw(this.ctx);
+        }
+        
+        // Draw explosions
+        for (const explosion of this.explosions) {
+            explosion.draw(this.ctx);
+        }
+        
         // Draw cat
         this.cat.draw(this.ctx);
     }
@@ -420,6 +624,19 @@ class Game {
     
     updateUI() {
         this.fragmentCountEl.textContent = `${this.collectedCount} / ${CONFIG.totalFragments}`;
+        
+        // Update lives display
+        if (this.livesEl) {
+            let heartsHTML = '';
+            for (let i = 0; i < CONFIG.maxLives; i++) {
+                if (i < this.lives) {
+                    heartsHTML += '<span class="heart">❤️</span>';
+                } else {
+                    heartsHTML += '<span class="heart empty">🖤</span>';
+                }
+            }
+            this.livesEl.innerHTML = heartsHTML;
+        }
     }
     
     updateGestureUI(gesture) {
@@ -457,6 +674,21 @@ class Game {
         else if (dir.x > 0.3) text += text ? '-Right' : 'Right';
         
         return text || 'Moving';
+    }
+    
+    loseGame() {
+        this.gameLost = true;
+        const lossScreen = document.getElementById('victoryScreen');
+        lossScreen.classList.remove('hidden');
+        lossScreen.innerHTML = `
+            <div class="victory-content">
+                <h1 class="victory-title">💥 Game Over!</h1>
+                <p class="victory-text">The cat hit all the bombs!</p>
+                <p class="victory-subtext">Try again and avoid the explosions</p>
+                <button id="restartBtn" class="restart-btn">Play Again</button>
+            </div>
+        `;
+        document.getElementById('restartBtn').addEventListener('click', () => this.restartGame());
     }
     
     winGame() {
