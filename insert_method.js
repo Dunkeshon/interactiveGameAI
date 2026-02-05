@@ -1,0 +1,94 @@
+const fs = require('fs');
+
+// Read game.js
+let content = fs.readFileSync('game.js', 'utf8');
+
+// The method to insert
+const drawEndScreenMethod = `    drawEndScreen() {
+        // Semi-transparent overlay
+        this.ctx.fillStyle = 'rgba(10, 10, 26, 0.85)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Title
+        this.ctx.save();
+        this.ctx.font = '700 72px Outfit, sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        
+        // Gradient text
+        const titleGradient = this.ctx.createLinearGradient(
+            0, this.canvas.height * 0.25,
+            0, this.canvas.height * 0.35
+        );
+        titleGradient.addColorStop(0, '#fbbf24');
+        titleGradient.addColorStop(1, '#ff6b9d');
+        
+        this.ctx.fillStyle = titleGradient;
+        this.ctx.shadowColor = 'rgba(251, 191, 36, 0.4)';
+        this.ctx.shadowBlur = 30;
+        this.ctx.fillText(this.endScreenTitle, this.canvas.width / 2, this.canvas.height * 0.3);
+        
+        // Subtitle
+        this.ctx.shadowBlur = 0;
+        this.ctx.font = '600 24px Outfit, sans-serif';
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.fillText(this.endScreenSubtitle, this.canvas.width / 2, this.canvas.height * 0.4);
+        
+        this.ctx.restore();
+        
+        // Draw buttons
+        for (const button of this.endScreenButtons) {
+            button.draw(this.ctx);
+        }
+        
+        // Draw cursor at finger position
+        const gesture = this.mediapipe.getGestureState();
+        if (gesture.handDetected) {
+            this.ctx.save();
+            
+            // Outer glow
+            const gradient = this.ctx.createRadialGradient(
+                this.cursorX, this.cursorY, 0,
+                this.cursorX, this.cursorY, 30
+            );
+            gradient.addColorStop(0, gesture.isInteracting ? 'rgba(255, 107, 157, 0.6)' : 'rgba(34, 211, 238, 0.6)');
+            gradient.addColorStop(1, 'rgba(34, 211, 238, 0)');
+            
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.arc(this.cursorX, this.cursorY, 30, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Inner circle
+            this.ctx.fillStyle = gesture.isInteracting ? '#ff6b9d' : '#22d3ee';
+            this.ctx.beginPath();
+            this.ctx.arc(this.cursorX, this.cursorY, 8, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Ring
+            this.ctx.strokeStyle = '#ffffff';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.arc(this.cursorX, this.cursorY, 12, 0, Math.PI * 2);
+            this.ctx.stroke();
+            
+            this.ctx.restore();
+        }
+    }
+    
+`;
+
+// Find where to insert - right before "    updateUI() {"
+const marker = '    updateUI() {';
+const index = content.indexOf(marker);
+
+if (index !== -1) {
+    // Insert the method right before updateUI
+    content = content.substring(0, index) + drawEndScreenMethod + content.substring(index);
+    
+    // Write back
+    fs.writeFileSync('game.js', content, 'utf8');
+    console.log('Successfully added drawEndScreen method!');
+} else {
+    console.log('ERROR: Could not find updateUI() method');
+}

@@ -17,7 +17,8 @@ class MediaPipeHandler {
             handDetected: false,
             direction: { x: 0, y: 0 },
             isInteracting: false,
-            confidence: 0
+            confidence: 0,
+            fingerPosition: { x: 0, y: 0 } // Normalized index finger position (0-1)
         };
         
         this.onReadyCallback = null;
@@ -145,6 +146,12 @@ class MediaPipeHandler {
         const PINKY_TIP = 20;
         const INDEX_MCP = 5;
         const PINKY_MCP = 17;
+        
+        // Store raw index finger position (normalized 0-1, mirrored for camera)
+        this.gestureState.fingerPosition = {
+            x: 1 - landmarks[INDEX_TIP].x, // Mirror X axis for camera
+            y: landmarks[INDEX_TIP].y
+        };
         
         // Calculate palm center (average of wrist and finger bases)
         const palmCenter = {
