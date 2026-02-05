@@ -554,6 +554,14 @@ class Game {
         this.winSound = document.getElementById('winSound');
         this.winSound.volume = 0.7; // Set volume to 70%
         
+        // Bomb Sound
+        this.bombSound = document.getElementById('bombSound');
+        this.bombSound.volume = 0.6; // Set volume to 60%
+        
+        // Collect Sound
+        this.collectSound = document.getElementById('collectSound');
+        this.collectSound.volume = 0.6; // Set volume to 60%
+        
         // Load cat sprite
         this.catSprite = new Image();
         this.catSprite.src = 'cat_sprite.png';
@@ -760,6 +768,13 @@ class Game {
         for (const fragment of this.fragments) {
             if (fragment.update(this.cat.x, this.cat.y, gesture.isInteracting)) {
                 this.collectedCount++;
+                
+                // Play collect sound
+                this.collectSound.currentTime = 0;
+                this.collectSound.play().catch(error => {
+                    console.log('Could not play collect sound:', error);
+                });
+                
                 this.updateUI();
                 
                 // Check if all fragments collected
@@ -774,6 +789,13 @@ class Game {
             if (bomb.update(this.cat.x, this.cat.y)) {
                 // Bomb touched!
                 this.explosions.push(new Explosion(bomb.x, bomb.y));
+                
+                // Play bomb hit sound
+                this.bombSound.currentTime = 0;
+                this.bombSound.play().catch(error => {
+                    console.log('Could not play bomb sound:', error);
+                });
+                
                 this.lives--;
                 this.updateUI();
                 
