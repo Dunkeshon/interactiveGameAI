@@ -861,6 +861,15 @@ class Game {
         
         // Restart button
         this.restartBtn.addEventListener('click', () => this.restartGame());
+        
+        // Create Menu button dynamically
+        const menuBtn = document.createElement('button');
+        menuBtn.textContent = '← Menu';
+        menuBtn.style.cssText = 'position: fixed; bottom: 2rem; left: 2rem; padding: 0.75rem 1.5rem; background: rgba(26, 26, 46, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); color: white; border-radius: 12px; cursor: pointer; font-family: "Outfit", sans-serif; font-size: 1rem; font-weight: 600; transition: all 0.3s ease; z-index: 100;';
+        menuBtn.onmouseover = () => { menuBtn.style.background = 'rgba(251, 191, 36, 0.2)'; menuBtn.style.borderColor = 'rgba(251, 191, 36, 0.5)'; };
+        menuBtn.onmouseout = () => { menuBtn.style.background = 'rgba(26, 26, 46, 0.9)'; menuBtn.style.borderColor = 'rgba(255, 255, 255, 0.2)'; };
+        menuBtn.onclick = () => window.location.href = 'index.html';
+        document.body.appendChild(menuBtn);
     }
     
     resizeCanvas() {
@@ -1313,7 +1322,7 @@ class Game {
             new GameButton(
                 startX + buttonWidth + buttonSpacing, buttonY, buttonWidth, buttonHeight,
                 'Quest Game',
-                () => console.log('Quest game coming soon!')
+                () => window.location.href = 'ObjectRecognition.html'
             )
         ];
     }
@@ -1354,7 +1363,7 @@ class Game {
             new GameButton(
                 startX + buttonWidth + buttonSpacing, buttonY, buttonWidth, buttonHeight,
                 'Quest Game',
-                () => console.log('Quest game coming soon!')
+                () => window.location.href = 'ObjectRecognition.html'
             )
         ];
     }

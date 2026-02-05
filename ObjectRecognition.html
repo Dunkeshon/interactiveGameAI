@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Riddle Object Hunter — LM Studio Vision</title>
+
+  <style>
+    @property --spirit-color {
+      syntax: '<color>';
+      initial-value: #6b7280;
+      inherits: true;
+    }
+
+    @property --spirit-heart {
+      syntax: '<color>';
+      initial-value: #fce4ec;
+      inherits: true;
+    }
+
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --border: #2a2a30;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --accent: #4f46e5;
+      --success: #16a34a;
+      --error: #dc2626;
+      --spirit-color: #6b7280;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0 0 1rem 0;
+      color: var(--accent);
+    }
+
+    .layout {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .main-row {
+      display: grid;
+      grid-template-columns: 320px 1fr 280px;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    .riddle-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .riddle-section-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .riddle-section h2 {
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      margin: 0;
+    }
+
+    .riddle-content-wrapper {
+      padding: 0 1rem 1rem 1rem;
+    }
+
+    .spirit-section {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 2rem 1rem;
+      min-height: 300px;
+      background: none;
+      border: none;
+    }
+
+    .result-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+    }
+
+    @media (max-width: 900px) {
+      .main-row {
+        flex-direction: column;
+      }
+
+      .main-row .riddle-section {
+        flex: none;
+      }
+    }
+
+    .camera-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .camera-section h2 {
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin: 0;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .video-wrap {
+      position: relative;
+      aspect-ratio: 4/3;
+      max-height: 180px;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 1rem;
+    }
+
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    #snapshot {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .status {
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.8125rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .status-dot.live {
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .status-dot.error {
+      background: var(--error);
+    }
+
+    .result-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+    }
+
+    .result-section h2 {
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin: 0 0 0.5rem 0;
+      color: var(--muted);
+    }
+
+    .result-display {
+      font-size: 1.125rem;
+      font-weight: 600;
+    }
+
+    .result-display .item {
+      margin-bottom: 0.25rem;
+    }
+
+    .result-display .item.yes {
+      color: var(--success);
+    }
+
+    .result-display .item.no {
+      color: var(--muted);
+    }
+
+    .result-display.pending .item {
+      color: var(--muted);
+    }
+
+    .result-display.error {
+      color: var(--error);
+    }
+
+    .debug-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .debug-group h3 {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.25rem;
+    }
+
+    .next-capture {
+      position: fixed;
+      bottom: 2rem;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #ffffff;
+      z-index: 10001;
+      /* Above flash-overlay */
+      pointer-events: none;
+      text-shadow: 0 0 20px rgba(0, 0, 0, 0.9), 0 0 40px rgba(0, 0, 0, 0.6);
+      transition: color 0.4s ease, transform 0.4s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .next-capture.capturing {
+      color: #fff;
+    }
+
+    .flash-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #fff;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .flash-active {
+      animation: flash-anim 0.4s ease-out;
+    }
+
+    @keyframes flash-anim {
+      0% {
+        opacity: 0.8;
+      }
+
+      100% {
+        opacity: 0;
+      }
+    }
+
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .riddle-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+    }
+
+    #winMessage {
+      display: none;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .win-title {
+      color: var(--success);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .win-subtitle {
+      color: var(--muted);
+      font-size: 1rem;
+      margin: 0;
+    }
+
+    .riddle-section h2 {
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin: 0 0 0.5rem 0;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+
+    button {
+      background: #f3f4f6;
+      color: #111827;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: #e5e7eb;
+      border-color: #9ca3af;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #f9fafb;
+    }
+
+    #debugContainer {
+      display: none;
+    }
+
+    #debugContainer.visible {
+      display: block;
+    }
+
+    #btnToggleDebug {
+      background: #d1d5db !important;
+      border-color: #9ca3af !important;
+      color: #6b7280 !important;
+    }
+
+    #btnToggleDebug:hover:not(:disabled) {
+      background: #b3b9c6 !important;
+    }
+
+    canvas {
+      display: none !important;
+    }
+
+    .riddle-category {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+      display: none;
+      color: #fbbf24;
+    }
+
+    .riddle-text {
+      font-size: 1.125rem;
+      font-style: italic;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .riddle-feedback {
+      font-size: 1rem;
+      font-weight: 600;
+      min-height: 1.5em;
+    }
+
+    .riddle-feedback.correct {
+      color: var(--success);
+    }
+
+    .riddle-feedback.wrong {
+      color: var(--muted);
+    }
+
+    .riddle-feedback.waiting {
+      color: var(--muted);
+      font-weight: 400;
+      font-style: italic;
+    }
+
+    .spirit-section {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 2rem 1rem;
+      min-height: 140px;
+    }
+
+    .spirit-message {
+      margin-top: 0.75rem;
+      text-align: center;
+      color: #fff7d6;
+      /* pastel yellow text color */
+      font-size: 1.25rem;
+      /* larger base size */
+      font-style: italic;
+      min-height: 1.6em;
+      transition: color 0.25s ease, transform 0.25s ease, text-shadow 0.25s ease;
+      pointer-events: none;
+      text-shadow: 0 0 12px rgba(255, 241, 179, 0.85), 0 6px 18px rgba(0, 0, 0, 0.45);
+    }
+
+    .spirit-message.angry {
+      color: #ff4d6f;
+      font-weight: 800;
+      font-size: 1.4rem;
+      transform: translateY(-2px);
+      text-shadow: 0 0 14px rgba(215, 0, 64, 0.95), 0 8px 24px rgba(0, 0, 0, 0.45);
+    }
+
+    .spirit-progress {
+      font-size: 1.25rem;
+      font-weight: 500;
+      color: var(--muted);
+      margin-top: 1rem;
+    }
+
+    .spirit-rotate-wrapper {
+      animation: polygon-rotate 30s linear infinite;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: animation-duration 1s ease;
+    }
+
+    .spirit-rotate-wrapper.fully-awakened {
+      animation-duration: 6s;
+    }
+
+    .spirit-blob {
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle at center, var(--spirit-heart) 0%, var(--spirit-color) 70%);
+      transition: --spirit-color 0.6s ease, --spirit-heart 0.6s ease, box-shadow 0.6s ease, transform 0.4s ease;
+      animation: blob-random-morph 12s ease-in-out infinite alternate;
+      position: relative;
+      /* Soft edges and organic glow */
+      -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 20%, rgba(0, 0, 0, 0) 75%);
+      mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 20%, rgba(0, 0, 0, 0) 75%);
+      filter: blur(15px) brightness(1.2) contrast(1.1);
+      border-radius: 40% 60% 60% 40% / 60% 30% 70% 40%;
+    }
+
+    .spirit-blob.fully-awakened {
+      animation: blob-random-morph 4s ease-in-out infinite alternate, spirit-glow 1.5s ease-in-out infinite;
+      filter: blur(8px) brightness(1.5) contrast(1.2);
+    }
+
+    @keyframes blob-random-morph {
+      0% {
+        border-radius: 40% 60% 60% 40% / 60% 30% 70% 40%;
+        transform: scale(1) translate(0, 0);
+      }
+
+      20% {
+        border-radius: 70% 30% 50% 50% / 30% 60% 40% 70%;
+        transform: scale(1.05) translate(5px, -10px);
+      }
+
+      40% {
+        border-radius: 30% 70% 70% 30% / 50% 40% 60% 50%;
+        transform: scale(0.95) translate(-10px, 5px);
+      }
+
+      60% {
+        border-radius: 50% 50% 30% 70% / 20% 80% 30% 70%;
+        transform: scale(1.02) translate(10px, 10px);
+      }
+
+      80% {
+        border-radius: 20% 80% 40% 60% / 60% 30% 70% 40%;
+        transform: scale(0.98) translate(-5px, -5px);
+      }
+
+      100% {
+        border-radius: 40% 60% 60% 40% / 60% 30% 70% 40%;
+        transform: scale(1) translate(0, 0);
+      }
+    }
+
+    @keyframes polygon-rotate {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .spirit-blob.spirit-wrong {
+      /* Fully red (user-specified) while keeping feathered gradient edges via blur and glow */
+      animation: spirit-wrong-pulse 0.7s cubic-bezier(.2, .8, .2, 1) 1;
+      --spirit-color: #D70040;
+      /* lighter heart to keep a bright center while overall red */
+      --spirit-heart: #ff6a8a;
+      box-shadow: 0 0 80px 32px rgba(215, 0, 64, 0.95);
+      filter: blur(14px) brightness(1.35) contrast(1.05) saturate(1.45);
+    }
+
+    .spirit-blob.spirit-correct {
+      animation: spirit-correct-swirl 1s ease-in-out;
+      background-color: #10b981 !important;
+    }
+
+    @keyframes spirit-wrong-pulse {
+      0% {
+        transform: translateX(0) scale(1);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+      }
+
+      20% {
+        transform: translateX(-6px) scale(1.06) rotate(-1deg);
+        box-shadow: 0 0 40px 12px rgba(239, 68, 68, 0.6);
+      }
+
+      50% {
+        transform: translateX(6px) scale(1.08) rotate(1deg);
+        box-shadow: 0 0 60px 20px rgba(239, 68, 68, 0.7);
+      }
+
+      80% {
+        transform: translateX(-4px) scale(1.03) rotate(-0.5deg);
+        box-shadow: 0 0 30px 8px rgba(239, 68, 68, 0.5);
+      }
+
+      100% {
+        transform: translateX(0) scale(1);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+      }
+    }
+
+    @keyframes spirit-correct-swirl {
+      0% {
+        transform: scale(1) rotate(0deg);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
+
+      40% {
+        transform: scale(1.2) rotate(160deg);
+        box-shadow: 0 0 80px 30px rgba(16, 185, 129, 0.7);
+      }
+
+      80% {
+        transform: scale(1.1) rotate(340deg);
+        box-shadow: 0 0 40px 10px rgba(16, 185, 129, 0.4);
+      }
+
+      100% {
+        transform: scale(1) rotate(360deg);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
+    }
+
+    @keyframes spirit-glow {
+
+      0%,
+      100% {
+        filter: brightness(1);
+      }
+
+      50% {
+        filter: brightness(1.4);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+    <h1>Riddle Object Hunter</h1>
+
+    <div class="main-row">
+      <section class="riddle-section-wrapper">
+        <section class="riddle-section">
+          <h2>Your hint</h2>
+          <div class="riddle-content-wrapper">
+            <div id="gameUI">
+              <div class="riddle-category" id="riddleCategory">Find the object</div>
+              <div class="riddle-text" id="riddleText">Start the game to see your first riddle!</div>
+              <div class="riddle-feedback waiting" id="riddleFeedback"></div>
+            </div>
+
+            <div id="winMessage" style="display: none;">
+              <p class="win-title">You won! 🎉</p>
+              <p class="win-subtitle">Start a new game.</p>
+            </div>
+
+            <div class="controls" style="margin-top: 1.5rem">
+              <button type="button" id="btnStart">Start</button>
+              <button type="button" id="btnStop" disabled>Stop</button>
+              <button type="button" id="btnSnapshot" disabled>Take Snapshot</button>
+            </div>
+
+
+        </section>
+
+        <!-- Menu Button - Separate Section -->
+        <button type="button" id="btnMenu"
+          style="padding: 0.75rem; padding-right: 1rem; padding-left: 1rem;background: rgba(26, 26, 46, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); color: white; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; font-size: 1rem; margin-right: auto;">←
+          Menu</button>
+      </section>
+
+      <section class="spirit-section">
+        <div class="spirit-rotate-wrapper">
+          <div class="spirit-blob" id="spiritBlob"></div>
+        </div>
+        <div id="spiritMessage" class="spirit-message"></div>
+        <div class="spirit-progress" id="spiritProgress">0/3 objects</div>
+      </section>
+
+      <section class="result-section">
+        <!-- Moved Camera -->
+        <div class="video-wrap" style="margin-top: 0; margin-bottom: 1rem;">
+          <video id="video" autoplay playsinline muted></video>
+        </div>
+        <div class="status" id="status" style="margin-bottom: 1rem;">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">Starting camera…</span>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <button type="button" id="btnToggleDebug">Show Debug Dashboard</button>
+        </div>
+
+        <div id="debugContainer">
+          <h2>Debug Dashboard</h2>
+          <div class="result-display pending" id="resultDisplay">
+            <div class="debug-grid" style="grid-template-columns: 1fr;">
+              <div class="debug-group">
+                <h3>LM Studio Settings</h3>
+                <div style="margin-bottom: 0.75rem;">
+                  <label style="display: block; font-size: 0.875rem; color: #aaa; margin-bottom: 0.25rem;">Base
+                    URL:</label>
+                  <input type="text" id="lmStudioBaseInput" placeholder="http://127.0.0.1:1234"
+                    style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white; font-family: monospace; font-size: 0.875rem;">
+                </div>
+                <div style="margin-bottom: 0.75rem;">
+                  <label style="display: block; font-size: 0.875rem; color: #aaa; margin-bottom: 0.25rem;">Model
+                    Name:</label>
+                  <input type="text" id="lmStudioModelInput" placeholder="qwen/qwen3-vl-4b"
+                    style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white; font-family: monospace; font-size: 0.875rem;">
+                </div>
+                <button id="saveSettingsBtn"
+                  style="width: 100%; padding: 0.5rem; background: linear-gradient(135deg, #4f46e5, #22d3ee); border: none; border-radius: 6px; color: white; font-weight: 600; cursor: pointer; transition: transform 0.2s;">Save
+                  Settings</button>
+                <div id="settingsSaved"
+                  style="margin-top: 0.5rem; font-size: 0.8rem; color: #22c55e; opacity: 0; transition: opacity 0.3s;">
+                </div>
+              </div>
+              <div class="debug-group">
+                <h3>Detected Objects</h3>
+                <div class="item" id="penResult">Pen: —</div>
+                <div class="item" id="travelMugResult">Travel Mug: —</div>
+                <div class="item" id="scissorsResult">Scissors: —</div>
+                <div class="item" id="phoneResult">Phone: —</div>
+                <div class="item" id="bottleResult">Bottle: —</div>
+                <div class="item" id="glassesResult">Glasses: —</div>
+                <div class="item" id="watchResult">Watch: —</div>
+                <div class="item" id="headphonesResult">Headphones: —</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="next-capture" id="nextCapture"></div>
+  <div class="flash-overlay" id="flashOverlay"></div>
+
+  <canvas id="canvas"></canvas>
+
+  <script>
+    let LM_STUDIO_BASE = "http://127.0.0.1:1234";
+    let MODEL = "qwen/qwen3-vl-4b";
+    let currentIntervalMs = 10_000;
+
+    // Load settings from localStorage
+    const savedBase = localStorage.getItem('lm_studio_base_url');
+    const savedModel = localStorage.getItem('lm_studio_model_name');
+    if (savedBase) LM_STUDIO_BASE = savedBase;
+    if (savedModel) MODEL = savedModel;
+
+    const RIDDLES = [
+      // PEN
+      { riddle: "I have a point but no edges. I help you write but I'm not a keyboard. What am I?", key: "hasPen" },
+      { riddle: "I hold your ideas on paper, but I'm not a printer. What am I?", key: "hasPen" },
+      { riddle: "I bleed ink to tell your story. What am I?", key: "hasPen" },
+      { riddle: "I'm mightier than the sword and fits in your pocket. What am I?", key: "hasPen" },
+      { riddle: "I am the scribe's best friend. What am I?", key: "hasPen" },
+      // TRAVEL MUG
+      { riddle: "I have no handle and I'm built for the road. I keep your coffee hot. What am I?", key: "hasTravelMug" },
+      { riddle: "I'm a cylinder of warmth with a lid for a cap, perfect for a commute. What am I?", key: "hasTravelMug" },
+      { riddle: "I hold your liquid fuel but have no ears to hold onto. What am I?", key: "hasTravelMug" },
+      { riddle: "Indestructible and insulated, I am the traveler's companion for tea. What am I?", key: "hasTravelMug" },
+      { riddle: "I am a mug that lost its handle but gained a lid for the journey. What am I?", key: "hasTravelMug" },
+      // SCISSORS
+      { riddle: "I have two blades and two eyes, but I cannot see. I love to cut through paper. What am I?", key: "hasScissors" },
+      { riddle: "I am a tool with a pivot and sharp edges. I help you craft and trim. What am I?", key: "hasScissors" },
+      { riddle: "I go snip-snip and open wide. Be careful with my sharp side! What am I?", key: "hasScissors" },
+      { riddle: "I am a silver bird that never flies, but cuts the ribbon when a shop opens. What am I?", key: "hasScissors" },
+      { riddle: "You use me to cut your hair or wrap a gift. What am I?", key: "hasScissors" },
+      // PHONE
+      { riddle: "I fit in your palm, I ring and I text. I connect you to the world. What am I?", key: "hasPhone" },
+      { riddle: "I have a screen you tap and scroll. You carry me everywhere. What am I?", key: "hasPhone" },
+      { riddle: "I am a pocket-sized window to everything, yet I am easily lost. What am I?", key: "hasPhone" },
+      { riddle: "I wake you up in the morning and glow in the dark at night. I am your smart companion. What am I?", key: "hasPhone" },
+      { riddle: "I have no mouth but I speak for you, no ears but I hear the world. What am I?", key: "hasPhone" },
+      // BOTTLE
+      { riddle: "I store liquids with a twist-off cap. I keep you hydrated. What am I?", key: "hasBottle" },
+      { riddle: "Water, soda, or juice—I hold them all. I'm usually plastic or glass. What am I?", key: "hasBottle" },
+      { riddle: "I carry your thirst-quencher, often recycled but rarely empty. What am I?", key: "hasBottle" },
+      { riddle: "I have a neck but no head, and I wear a crown made of plastic or metal. What am I?", key: "hasBottle" },
+      { riddle: "I am a transparent cylinder that gurgles when you tilt me. What am I?", key: "hasBottle" },
+      // GLASSES
+      { riddle: "I have two eyes but cannot see, I sit on your nose and help you read. What am I?", key: "hasGlasses" },
+      { riddle: "I have frames and lenses, shielding you from the sun or clarifying your view. What am I?", key: "hasGlasses" },
+      { riddle: "I am worn on the face to sharpen the world or darken the day. What am I?", key: "hasGlasses" },
+      { riddle: "I bridge your nose and cling to your ears to give you second sight. What am I?", key: "hasGlasses" },
+      { riddle: "I am the windows you wear when the world gets blurry. What am I?", key: "hasGlasses" },
+      // WATCH
+      { riddle: "I have hands but no arms, a face but no eyes. I tell you the time from your wrist. What am I?", key: "hasWatch" },
+      { riddle: "I tick and I tock, or I glow with a screen and notifications, strapped to your arm. What am I?", key: "hasWatch" },
+      { riddle: "I count your steps and the seconds while resting on your skin. What am I?", key: "hasWatch" },
+      { riddle: "I am a steady heartbeat on your pulse, sometimes smart and sometimes classic. What am I?", key: "hasWatch" },
+      { riddle: "I might have twelve numbers or a digital face that never sleeps. What am I?", key: "hasWatch" },
+      // HEADPHONES
+      { riddle: "I hug your ears and bring you music, but I don't speak a word. What am I?", key: "hasHeadphones" },
+      { riddle: "I have two cups but no coffee, I bridge your head to sound. What am I?", key: "hasHeadphones" },
+      { riddle: "I isolate the world and fill your head with rhythm. What am I?", key: "hasHeadphones" },
+      { riddle: "I am the earmuffs that sing to you. What am I?", key: "hasHeadphones" },
+      { riddle: "I have a headband but no hair, and I live for the beat. What am I?", key: "hasHeadphones" },
+    ];
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    let usedKeys = [];
+
+    const gameUI = document.getElementById("gameUI");
+    const winMessage = document.getElementById("winMessage");
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const statusEl = document.getElementById("status");
+    const statusDot = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
+    const resultDisplay = document.getElementById("resultDisplay");
+    const ITEM_RESULTS = [
+      { id: "penResult", key: "hasPen", label: "Pen" },
+      { id: "travelMugResult", key: "hasTravelMug", label: "Travel Mug" },
+      { id: "scissorsResult", key: "hasScissors", label: "Scissors" },
+      { id: "phoneResult", key: "hasPhone", label: "Phone" },
+      { id: "bottleResult", key: "hasBottle", label: "Bottle" },
+      { id: "glassesResult", key: "hasGlasses", label: "Glasses" },
+      { id: "watchResult", key: "hasWatch", label: "Watch" },
+      { id: "headphonesResult", key: "hasHeadphones", label: "Headphones" },
+    ].map((r) => ({ ...r, el: document.getElementById(r.id) }));
+    const riddleCategory = document.getElementById("riddleCategory");
+    const nextCapture = document.getElementById("nextCapture");
+    const flashOverlay = document.getElementById("flashOverlay");
+    const btnStart = document.getElementById("btnStart");
+    const btnStop = document.getElementById("btnStop");
+    const riddleText = document.getElementById("riddleText");
+    const riddleFeedback = document.getElementById("riddleFeedback");
+    const spiritBlob = document.getElementById("spiritBlob");
+    const spiritProgress = document.getElementById("spiritProgress");
+
+    const SPIRIT_COLORS = [
+      "#6b7280",
+      "#4a8a94",
+      "#22b8c9",
+      "#22d3ee",
+    ];
+
+    const HEART_COLORS = [
+      "#fce4ec", // Pastel (0)
+      "#fce4ec", // Still Pastel (1st object presented) -> becomes intense AFTER identified
+      "#f06292", // Intense (After 1st)
+      "#e91e63", // Even More Intense (After 2nd)
+    ];
+
+    let stream = null;
+    let intervalId = null;
+    let nextCaptureAt = null;
+    let nextCaptureTimerId = null;
+    let currentRiddle = null;
+    let correctCount = 0;
+
+    function updateSpirit() {
+      const step = Math.min(correctCount, 3);
+
+      // Dynamic capture delay: increase by 6s if at least one object found
+      currentIntervalMs = (step >= 1) ? 16_000 : 10_000;
+
+      spiritBlob.style.setProperty('--spirit-color', SPIRIT_COLORS[step]);
+      spiritBlob.style.setProperty('--spirit-heart', HEART_COLORS[step]);
+      spiritBlob.style.boxShadow = step === 3
+        ? `0 0 40px ${SPIRIT_COLORS[3]}, 0 0 80px ${SPIRIT_COLORS[3]}80`
+        : "none";
+      spiritBlob.classList.toggle("fully-awakened", step === 3);
+      spiritBlob.parentElement.classList.toggle("fully-awakened", step === 3);
+      spiritProgress.textContent = step === 3 ? "Spirit awakened!" : `${step}/3 objects`;
+    }
+
+    function pickNewRiddle() {
+      const allKeys = [...new Set(RIDDLES.map((r) => r.key))];
+      const availableKeys = allKeys.filter((k) => !usedKeys.includes(k));
+
+      if (availableKeys.length === 0) {
+        // Fallback or reshuffle if we somehow ran out (unlikely)
+        usedKeys = [];
+        return pickNewRiddle();
+      }
+
+      const randomKey = availableKeys[Math.floor(Math.random() * availableKeys.length)];
+      const possibleRiddles = RIDDLES.filter((r) => r.key === randomKey);
+      currentRiddle = possibleRiddles[Math.floor(Math.random() * possibleRiddles.length)];
+      riddleText.textContent = `"${currentRiddle.riddle}"`;
+
+      const isOcclusion = currentRiddle.key.startsWith("is") && currentRiddle.key.includes("Occluded");
+
+      riddleCategory.style.display = "block";
+      riddleCategory.textContent = isOcclusion ? "Occlude the camera" : "Find the object";
+      riddleCategory.className = `riddle-category ${isOcclusion ? 'category-occlusion' : 'category-object'}`;
+
+      riddleFeedback.textContent = isOcclusion ? "Cover the camera as hinted!" : "Find and hold the object!";
+      riddleFeedback.className = "riddle-feedback waiting";
+    }
+
+    function setRiddleFeedback(correct) {
+      riddleFeedback.classList.remove("correct", "wrong", "waiting");
+      spiritBlob.classList.remove("spirit-correct", "spirit-wrong");
+
+      // Trigger reflow to restart animation
+      void spiritBlob.offsetWidth;
+
+      if (correct) {
+        if (!usedKeys.includes(currentRiddle.key)) usedKeys.push(currentRiddle.key);
+        correctCount = Math.min(3, correctCount + 1);
+        updateSpirit();
+        spiritBlob.classList.add("spirit-correct");
+        riddleFeedback.classList.add("correct");
+
+        if (correctCount >= 3) {
+          gameUI.style.display = "none";
+          winMessage.style.display = "flex";
+          if (nextCaptureTimerId) {
+            clearTimeout(nextCaptureTimerId);
+            nextCaptureTimerId = null;
+          }
+          intervalId = null;
+
+          nextCapture.classList.remove("capturing");
+          nextCapture.textContent = "CONGRATULATIONS — THE SPIRIT IS AWAKE!";
+          // Also show a final spirit message
+          const spiritMessageEl = document.getElementById("spiritMessage");
+          if (spiritMessageEl) spiritMessageEl.textContent = "The spirit gratefully accepts your offering";
+          btnStart.disabled = false;
+          btnStop.disabled = true;
+        } else {
+          // Show success, immediately pick a new random riddle, and delay next capture
+          riddleFeedback.textContent = "Correct! 🎉";
+          // Show grateful message briefly and choose a new riddle
+          const spiritMessageEl = document.getElementById("spiritMessage");
+          if (spiritMessageEl) spiritMessageEl.textContent = "The spirit gratefully accepts your offering";
+          pickNewRiddle();
+          if (nextCaptureTimerId) {
+            clearTimeout(nextCaptureTimerId);
+            nextCaptureTimerId = null;
+          }
+          nextCapture.textContent = "";
+          btnSnapshot.disabled = false;
+          setTimeout(() => {
+            spiritBlob.classList.remove("spirit-correct");
+            if (intervalId && spiritMessageEl) spiritMessageEl.textContent = "The spirit peers at your object…";
+          }, 1500);
+        }
+      } else {
+        // Progress is not lost anymore
+        spiritBlob.classList.add("spirit-wrong");
+        riddleFeedback.classList.add("wrong");
+        riddleFeedback.textContent = "Not quite—try again!";
+        // Show the spirit's doubt message while evaluating the wrong object
+        const spiritMessageElWrong = document.getElementById("spiritMessage");
+        if (spiritMessageElWrong) {
+          spiritMessageElWrong.textContent = "The spirit's glow reddens and shivers with doubt";
+          spiritMessageElWrong.classList.add("angry");
+        }
+        setTimeout(() => {
+          spiritBlob.classList.remove("spirit-wrong");
+          // After the wrong animation completes, restore the spirit's color based on progress
+          updateSpirit();
+          riddleFeedback.classList.remove("wrong");
+          riddleFeedback.classList.add("waiting");
+          const isOcc = currentRiddle.key.startsWith("is") && currentRiddle.key.includes("Occluded");
+          riddleFeedback.textContent = isOcc ? "Cover the camera as hinted!" : "Find and hold the object!";
+          // Restore the default spirit message and allow next snapshot
+          if (spiritMessageElWrong) {
+            if (intervalId) spiritMessageElWrong.textContent = "The spirit peers at your object…";
+            spiritMessageElWrong.classList.remove("angry");
+          }
+          nextCapture.textContent = "";
+          btnSnapshot.disabled = false;
+        }, 3200);
+      }
+    }
+
+    function setStatus(ok, text) {
+      statusDot.classList.remove("live", "error");
+      statusDot.classList.add(ok ? "live" : "error");
+      statusText.textContent = text;
+    }
+
+    function setDetectionResult(value, isError = false) {
+      resultDisplay.classList.remove("pending", "error");
+      ITEM_RESULTS.forEach((r) => r.el.classList.remove("yes", "no"));
+      if (isError) {
+        resultDisplay.classList.add("error");
+        ITEM_RESULTS[0].el.textContent = value;
+        ITEM_RESULTS.slice(1).forEach((r) => (r.el.textContent = ""));
+      } else if (value == null) {
+        resultDisplay.classList.add("pending");
+        ITEM_RESULTS.forEach((r) => (r.el.textContent = `${r.label}: —`));
+      } else {
+        ITEM_RESULTS.forEach((r) => {
+          const v = value[r.key];
+          const isOcclusion = r.key.startsWith("is") && r.key.includes("Occluded");
+
+          let statusSuffix;
+          if (v) {
+            statusSuffix = isOcclusion ? "occluded ✓" : "holding ✓";
+          } else {
+            statusSuffix = isOcclusion ? "not occluded" : "not holding";
+          }
+
+          r.el.textContent = `${r.label}: ${statusSuffix}`;
+          r.el.classList.add(v ? "yes" : "no");
+        });
+      }
+    }
+
+    function scheduleManualSnapshot() {
+      if (!intervalId) return;
+      if (nextCaptureTimerId) clearTimeout(nextCaptureTimerId);
+
+      nextCapture.textContent = "Snapshot will be taken in 5 seconds...";
+      nextCapture.classList.remove("capturing");
+      btnSnapshot.disabled = true;
+
+      let countdown = 3;
+      const updateCountdown = () => {
+        if (countdown > 0) {
+          nextCapture.textContent = `Snapshot will be taken in ${countdown}s...`;
+          countdown--;
+          nextCaptureTimerId = setTimeout(updateCountdown, 1000);
+        } else {
+          runCapture();
+        }
+      };
+      updateCountdown();
+    }
+
+    function captureFrame() {
+      if (!stream || video.readyState < 2) return null;
+      const w = video.videoWidth;
+      const h = video.videoHeight;
+      const tCtx = canvas.getContext("2d");
+      canvas.width = w;
+      canvas.height = h;
+      tCtx.drawImage(video, 0, 0);
+      return canvas.toDataURL("image/jpeg", 0.7);
+    }
+
+    async function runCapture() {
+      const dataUrl = captureFrame();
+      if (!dataUrl) {
+        scheduleNextLabel();
+        return;
+      }
+
+      setDetectionResult(null);
+      nextCapture.textContent = "Analyzing…";
+
+      try {
+        const finalResult = await askDetectItems(dataUrl);
+        setDetectionResult(finalResult);
+
+        if (currentRiddle && finalResult[currentRiddle.key]) {
+          setRiddleFeedback(true);
+        } else if (currentRiddle) {
+          const anyHeld = ITEM_RESULTS.some((r) => finalResult[r.key]);
+          if (anyHeld) setRiddleFeedback(false);
+        }
+      } catch (e) {
+        console.error(e);
+        setDetectionResult(e.message || "Request failed", true);
+      }
+      scheduleNextLabel();
+    }
+
+    async function askDetectItems(dataUrl) {
+      const body = {
+        model: MODEL,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a vision assistant. Look at the image and answer only with the requested JSON. No other text.",
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text:
+                  "Analyze this webcam frame for held items. \n\n" +
+                  "ITEMS (Person is holding or showing):\n" +
+                  "- pen, travel mug (insulated, handle-less cup/bottle), scissors, phone, bottle, glasses, watch (classic wristwatch or smartwatch with a screen), headphones.\n\n" +
+                  "Reply ONLY with this JSON format:\n" +
+                  "{\"hasPen\": bool, \"hasTravelMug\": bool, \"hasScissors\": bool, \"hasPhone\": bool, \"hasBottle\": bool, \"hasGlasses\": bool, \"hasWatch\": bool, \"hasHeadphones\": bool}",
+              },
+              { type: "image_url", image_url: { url: dataUrl } },
+            ],
+          },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "item_response",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                hasPen: { type: "boolean" },
+                hasTravelMug: { type: "boolean" },
+                hasScissors: { type: "boolean" },
+                hasPhone: { type: "boolean" },
+                hasBottle: { type: "boolean" },
+                hasGlasses: { type: "boolean" },
+                hasWatch: { type: "boolean" },
+                hasHeadphones: { type: "boolean" },
+              },
+              required: ["hasPen", "hasTravelMug", "hasScissors", "hasPhone", "hasBottle", "hasGlasses", "hasWatch", "hasHeadphones"],
+            },
+          },
+        },
+        temperature: 0,
+        max_tokens: 400,
+        stream: false,
+      };
+
+      const res = await fetch(`${LM_STUDIO_BASE}/v1/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(
+          `LM Studio ${res.status}: ${errText || res.statusText}`
+        );
+      }
+
+      const data = await res.json();
+      const content = data?.choices?.[0]?.message?.content;
+      if (content == null) throw new Error("No content in response");
+
+      const parsed = JSON.parse(content);
+      const visionKeys = ["hasPen", "hasTravelMug", "hasScissors", "hasPhone", "hasBottle", "hasGlasses", "hasWatch", "hasHeadphones"];
+      for (const key of visionKeys) {
+        if (typeof parsed[key] !== "boolean")
+          throw new Error(`Invalid response: missing ${key} boolean`);
+      }
+      return {
+        hasPen: parsed.hasPen,
+        hasTravelMug: parsed.hasTravelMug,
+        hasScissors: parsed.hasScissors,
+        hasPhone: parsed.hasPhone,
+        hasBottle: parsed.hasBottle,
+        hasGlasses: parsed.hasGlasses,
+        hasWatch: parsed.hasWatch,
+        hasHeadphones: parsed.hasHeadphones,
+      };
+    }
+
+    async function runCapture() {
+      if (!intervalId) return;
+
+      // Trigger Flash Effect
+      flashOverlay.classList.remove("flash-active");
+      void flashOverlay.offsetWidth; // Trigger reflow
+      flashOverlay.classList.add("flash-active");
+
+      const dataUrl = captureFrame();
+      if (!dataUrl) {
+        setDetectionResult("No frame", true);
+        scheduleNextLabel();
+        return;
+      }
+
+      setDetectionResult(null);
+      nextCapture.classList.add("capturing");
+      const spiritMessageEl = document.getElementById("spiritMessage");
+      if (spiritMessageEl) spiritMessageEl.textContent = "The spirit peers at your object…";
+
+      try {
+        const finalResult = await askDetectItems(dataUrl);
+        setDetectionResult(finalResult);
+
+        if (currentRiddle && finalResult[currentRiddle.key]) {
+          setRiddleFeedback(true);
+        } else if (currentRiddle) {
+          const anyHeld = ITEM_RESULTS.some((r) => finalResult[r.key]);
+          if (anyHeld) setRiddleFeedback(false);
+        }
+      } catch (e) {
+        console.error(e);
+        setDetectionResult(e.message || "Request failed", true);
+      }
+      scheduleNextLabel();
+    }
+
+    function startInterval() {
+      if (intervalId) return;
+      correctCount = 0;
+      usedKeys = [];
+
+      // Reset UI visibility
+      gameUI.style.display = "block";
+      winMessage.style.display = "none";
+
+      updateSpirit();
+      pickNewRiddle();
+      intervalId = true;
+      // Clear any spirit message until the first capture; it will appear during captures
+      const spiritMessageElStart = document.getElementById("spiritMessage");
+      if (spiritMessageElStart) spiritMessageElStart.textContent = "";
+      nextCapture.textContent = "Press Take Snapshot to evaluate your object";
+      btnSnapshot.disabled = false;
+      scheduleNextLabel();
+      btnStart.disabled = true;
+      btnStop.disabled = false;
+    }
+
+    function stopInterval() {
+      intervalId = null;
+      if (nextCaptureTimerId) {
+        clearTimeout(nextCaptureTimerId);
+        nextCaptureTimerId = null;
+      }
+      nextCapture.textContent = "";
+      const spiritMessageElStop = document.getElementById("spiritMessage");
+      if (spiritMessageElStop) spiritMessageElStop.textContent = "";
+      btnSnapshot.disabled = true;
+      currentRiddle = null;
+      riddleCategory.style.display = "none";
+      riddleCategory.textContent = "";
+      correctCount = 0;
+      updateSpirit();
+      gameUI.style.display = "block";
+      winMessage.style.display = "none";
+      riddleText.textContent = "Start the game to see your first riddle!";
+      riddleFeedback.textContent = "";
+      riddleFeedback.className = "riddle-feedback waiting";
+      btnStart.disabled = false;
+      btnStop.disabled = true;
+    }
+
+    async function initCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" },
+          audio: false,
+        });
+        video.srcObject = stream;
+        await new Promise((resolve, reject) => {
+          video.onloadedmetadata = resolve;
+          video.onerror = () => reject(new Error("Video load failed"));
+        });
+        setStatus(true, "Camera live");
+        btnStart.disabled = false;
+      } catch (e) {
+        setStatus(false, "Camera error: " + (e.message || "denied"));
+        setDetectionResult("Camera failed", true);
+      }
+    }
+
+    const btnSnapshot = document.getElementById("btnSnapshot");
+    const btnToggleDebug = document.getElementById("btnToggleDebug");
+    const debugContainer = document.getElementById("debugContainer");
+
+    btnToggleDebug.addEventListener("click", () => {
+      debugContainer.classList.toggle("visible");
+      btnToggleDebug.textContent = debugContainer.classList.contains("visible")
+        ? "Hide Debug Dashboard"
+        : "Show Debug Dashboard";
+    });
+
+    btnStart.addEventListener("click", startInterval);
+    btnStop.addEventListener("click", stopInterval);
+    btnSnapshot.addEventListener("click", scheduleManualSnapshot);
+
+    // Menu button
+    const btnMenu = document.getElementById("btnMenu");
+    btnMenu.addEventListener("click", () => {
+      window.location.href = "index.html";
+    });
+
+    // LM Studio Settings
+    const lmStudioBaseInput = document.getElementById("lmStudioBaseInput");
+    const lmStudioModelInput = document.getElementById("lmStudioModelInput");
+    const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+    const settingsSaved = document.getElementById("settingsSaved");
+
+    // Initialize input fields with current values
+    lmStudioBaseInput.value = LM_STUDIO_BASE;
+    lmStudioModelInput.value = MODEL;
+
+    saveSettingsBtn.addEventListener("click", () => {
+      LM_STUDIO_BASE = lmStudioBaseInput.value.trim() || "http://127.0.0.1:1234";
+      MODEL = lmStudioModelInput.value.trim() || "qwen/qwen3-vl-4b";
+
+      localStorage.setItem('lm_studio_base_url', LM_STUDIO_BASE);
+      localStorage.setItem('lm_studio_model_name', MODEL);
+
+      settingsSaved.textContent = "✓ Settings saved!";
+      settingsSaved.style.opacity = "1";
+
+      setTimeout(() => {
+        settingsSaved.style.opacity = "0";
+      }, 2000);
+    });
+
+    initCamera();
+  </script>
+</body>
+
+</html>

@@ -4,113 +4,291 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cat Code Quest - Gesture Controlled Game</title>
-    <meta name="description"
-        content="A gesture-controlled game where a cute cat collects code fragments using MediaPipe hand tracking">
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>Game Hub - Choose Your Adventure</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f0f12 0%, #1a1a2e 50%, #0f0f12 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated background particles */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background-image:
+                radial-gradient(circle, rgba(79, 70, 229, 0.1) 1px, transparent 1px),
+                radial-gradient(circle, rgba(251, 191, 36, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px, 80px 80px;
+            background-position: 0 0, 40px 40px;
+            animation: particles 60s linear infinite;
+        }
+
+        @keyframes particles {
+            from {
+                transform: translate(0, 0);
+            }
+
+            to {
+                transform: translate(-50px, -50px);
+            }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fbbf24 0%, #ff6b9d 50%, #4f46e5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 40px rgba(251, 191, 36, 0.3);
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+
+            0%,
+            100% {
+                filter: brightness(1);
+            }
+
+            50% {
+                filter: brightness(1.2);
+            }
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: #a0a0b0;
+            margin-bottom: 3rem;
+            font-weight: 500;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .game-card {
+            background: rgba(24, 24, 28, 0.8);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2.5rem 2rem;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(79, 70, 229, 0.1) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .game-card:hover::before {
+            opacity: 1;
+        }
+
+        .game-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(251, 191, 36, 0.5);
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.4),
+                0 0 40px rgba(251, 191, 36, 0.2);
+        }
+
+        .game-card.cat-game:hover {
+            border-color: rgba(251, 191, 36, 0.5);
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.4),
+                0 0 40px rgba(251, 191, 36, 0.3);
+        }
+
+        .game-card.riddle-game:hover {
+            border-color: rgba(79, 70, 229, 0.5);
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.4),
+                0 0 40px rgba(79, 70, 229, 0.3);
+        }
+
+        .game-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            display: block;
+            transition: transform 0.4s ease;
+        }
+
+        .game-card:hover .game-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .game-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.75rem;
+        }
+
+        .game-description {
+            font-size: 1rem;
+            color: #a0a0b0;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .game-features {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+
+        .game-features li {
+            font-size: 0.875rem;
+            color: #c0c0d0;
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .game-features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #fbbf24;
+            font-weight: 700;
+        }
+
+        .play-button {
+            background: linear-gradient(135deg, #fbbf24 0%, #ff6b9d 100%);
+            color: #1a1a2e;
+            border: none;
+            padding: 0.875rem 2rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
+        }
+
+        .play-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(251, 191, 36, 0.5);
+        }
+
+        .play-button:active {
+            transform: scale(0.98);
+        }
+
+        .riddle-game .play-button {
+            background: linear-gradient(135deg, #4f46e5 0%, #22d3ee 100%);
+        }
+
+        .footer {
+            margin-top: 3rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .subtitle {
+                font-size: 1rem;
+            }
+
+            .games-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .game-card {
+                padding: 2rem 1.5rem;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <div class="game-container">
-        <!-- Game Canvas -->
-        <canvas id="gameCanvas"></canvas>
+    <div class="container">
+        <h1>🎮 Game Hub</h1>
+        <p class="subtitle">Choose your adventure and start playing!</p>
 
-        <!-- Background Music -->
-        <audio id="bgMusic" loop>
-            <source src="BgSound.mp3" type="audio/mpeg">
-        </audio>
+        <div class="games-grid">
+            <!-- Cat Escape -->
+            <div class="game-card cat-game" onclick="window.location.href='cat-game.html'">
+                <span class="game-icon">🐱</span>
+                <h2 class="game-title">Cat Escape</h2>
+                <p class="game-description">
+                    Guide a clever cat through a gesture-controlled adventure!
+                </p>
+                <ul class="game-features">
+                    <li>Hand gesture controls</li>
+                    <li>Collect keys and avoid bombs</li>
+                    <li>Unlock the magical door</li>
+                    <li>Interactive end-game buttons</li>
+                </ul>
+                <button class="play-button">Play Now</button>
+            </div>
 
-        <!-- Win Sound -->
-        <audio id="winSound">
-            <source src="WinSound.mp3" type="audio/mpeg">
-        </audio>
-
-        <!-- Bomb Hit Sound -->
-        <audio id="bombSound">
-            <source src="BombSound.mp3" type="audio/mpeg">
-        </audio>
-
-        <!-- Collect Sound -->
-        <audio id="collectSound">
-            <source src="CollectSound.mp3" type="audio/mpeg">
-        </audio>
-
-        <!-- Camera Preview -->
-        <div class="camera-panel">
-            <video id="webcam" autoplay playsinline></video>
-            <canvas id="handCanvas"></canvas>
-            <div class="camera-label">Hand Tracking</div>
-        </div>
-
-        <!-- Game UI -->
-        <div class="ui-panel top-left">
-            <div class="stat">
-                <span class="stat-label">Lives</span>
-                <span id="lives" class="stat-value"><span class="heart">❤️</span><span class="heart">❤️</span><span
-                        class="heart">❤️</span></span>
+            <!-- Riddle Object Hunter -->
+            <div class="game-card riddle-game" onclick="window.location.href='ObjectRecognition.html'">
+                <span class="game-icon">🔮</span>
+                <h2 class="game-title">Riddle Object Hunter</h2>
+                <p class="game-description">
+                    Solve riddles by showing objects to awaken the mystical spirit!
+                </p>
+                <ul class="game-features">
+                    <li>AI-powered object detection</li>
+                    <li>Solve clever riddles</li>
+                    <li>Awaken the spirit guardian</li>
+                    <li>Requires LM Studio + webcam</li>
+                </ul>
+                <button class="play-button">Play Now</button>
             </div>
         </div>
 
-        <div class="ui-panel top-center">
-            <div class="stat">
-                <img width="36" height="36" src="Key.svg" alt="Keys">
-                <span class="stat-label">Keys collected</span>
-                <span id="fragmentCount" class="stat-value">0 / 5</span>
-            </div>
-        </div>
-
-        <div class="ui-panel top-right">
-            <div class="gesture-indicator">
-                <div id="gestureStatus" class="gesture-status">
-                    <span class="gesture-icon">✋</span>
-                    <span class="gesture-text">Show your hand</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Instructions Panel -->
-        <div class="ui-panel bottom-center instructions">
-            <div class="instruction-item">
-                <span class="key">☝️ Index Finger</span>
-                <span class="action">Move Cat</span>
-            </div>
-            <div class="instruction-divider"></div>
-            <div class="instruction-item">
-                <span class="key">✋ Open Palm</span>
-                <span class="action">Collect key</span>
-            </div>
-        </div>
-
-        <!-- Victory Screen -->
-        <div id="victoryScreen" class="victory-screen hidden">
-            <div class="victory-content">
-                <h1 class="victory-title">🎉 Victory!</h1>
-                <p class="victory-text">The cat unlocked the door!</p>
-                <p class="victory-subtext">All keys collected</p>
-                <button id="restartBtn" class="restart-btn">Play Again</button>
-            </div>
-        </div>
-
-        <!-- Loading Screen -->
-        <div id="loadingScreen" class="loading-screen">
-            <div class="loading-content">
-                <div class="loading-spinner"></div>
-                <p class="loading-text">Loading MediaPipe...</p>
-                <p class="loading-subtext">Please allow camera access</p>
-            </div>
+        <div class="footer">
+            <p>Use your webcam and hand gestures to play • AI-powered experiences</p>
         </div>
     </div>
-
-    <!-- MediaPipe Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
-        crossorigin="anonymous"></script>
-
-    <!-- Game Scripts -->
-    <script src="mediapipe-handler.js"></script>
-    <script src="game.js"></script>
 </body>
 
 </html>
