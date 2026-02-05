@@ -303,7 +303,7 @@ class CodeFragment {
 }
 
 class Door {
-    constructor(x, y) {
+    constructor(x, y, fishSprite) {
         this.x = x;
         this.y = y;
         this.width = CONFIG.doorWidth;
@@ -311,6 +311,7 @@ class Door {
         this.isUnlocked = false;
         this.isOpen = false;
         this.openProgress = 0;
+        this.fishSprite = fishSprite;
     }
     
     unlock() {
@@ -337,7 +338,7 @@ class Door {
     draw(ctx) {
         ctx.save();
         ctx.translate(this.x, this.y);
-        
+
         // Draw wall/frame
         const frameWidth = this.width + 40;
         const frameHeight = this.height + 40;
@@ -365,7 +366,7 @@ class Door {
             ctx.lineTo(frameWidth / 2, i);
             ctx.stroke();
         }
-        
+
         // Door frame (wooden)
         ctx.fillStyle = '#8b6f47';
         ctx.fillRect(-this.width / 2 - 8, -this.height / 2 - 8, this.width + 16, this.height + 16);
@@ -373,7 +374,58 @@ class Door {
         // Door frame shadow
         ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.fillRect(-this.width / 2 - 8, -this.height / 2 - 8, this.width + 16, 8);
+
+        // --- Fish behind the door ---
+        // Clip to the doorway opening so fish stay inside
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(-this.width / 2 + 2, -this.height / 2 + 2, this.width - 4, this.height - 4);
+        ctx.clip();
+
+        // Slightly darker background behind the door opening
+        ctx.fillStyle = 'rgba(3, 7, 18, 0.75)'; // dark navy, semi-transparent
+        ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+
+        const time = Date.now() * 0.0006;
         
+        // Draw two fish icons behind the door using the provided sprite
+        if (this.fishSprite && this.fishSprite.complete) {
+            const baseWidth = this.width * 0.7; // original size
+            const aspectRatio = this.fishSprite.width / this.fishSprite.height || 2.0;
+            const baseHeight = baseWidth / aspectRatio;
+            
+            const swimOffset1 = Math.sin(time * 1.5) * 6;
+            const swimOffset2 = Math.sin(time * 1.5 + Math.PI) * 6;
+
+            // Upper fish
+            ctx.save();
+            ctx.translate(-this.width * 0.05 + swimOffset1, -this.height * 0.15);
+            ctx.drawImage(
+                this.fishSprite,
+                -baseWidth / 2,
+                -baseHeight / 2,
+                baseWidth,
+                baseHeight
+            );
+            ctx.restore();
+
+            // Lower, slightly smaller fish
+            ctx.save();
+            const smallWidth = baseWidth * 0.8;   // original relative size
+            const smallHeight = baseHeight * 0.8;
+            ctx.translate(this.width * 0.05 + swimOffset2, this.height * 0.2);
+            ctx.drawImage(
+                this.fishSprite,
+                -smallWidth / 2,
+                -smallHeight / 2,
+                smallWidth,
+                smallHeight
+            );
+            ctx.restore();
+        }
+
+        ctx.restore();
+
         // Door main panel
         const doorColor = this.isUnlocked ? '#d4a574' : '#8b6f47';
         const doorGradient = ctx.createLinearGradient(-this.width / 2, -this.height / 2, this.width / 2, -this.height / 2);
@@ -823,6 +875,10 @@ class Game {
         // Load key sprite
         this.keySprite = new Image();
         this.keySprite.src = 'Key.svg';
+
+        // Load fish sprite for behind the door
+        this.fishSprite = new Image();
+        this.fishSprite.src = 'fresh-fish-seafood-healthy-icon.png';
         
         this.init();
     }
@@ -983,8 +1039,8 @@ class Game {
         // Create cat at center-left
         this.cat = new Cat(w * 0.15, h * 0.5, this.catSprite);
         
-        // Create door at right side (moved down)
-        this.door = new Door(w * 0.9, h * 0.62);
+        // Create door at right side (moved down) with fish sprite behind it
+        this.door = new Door(w * 0.9, h * 0.62, this.fishSprite);
         
         // Create code fragments at random positions
         this.fragments = [];
