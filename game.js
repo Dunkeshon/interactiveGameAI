@@ -30,9 +30,19 @@ class Cat {
         this.facingRight = true;
         this.bobOffset = 0;
         this.bobSpeed = 0.05;
+        
+        // Squash and stretch animation
+        this.velocityX = 0;
+        this.velocityY = 0;
+        this.squashX = 1;
+        this.squashY = 1;
     }
     
     update(direction, canvasWidth, canvasHeight) {
+        // Store previous position for velocity calculation
+        const prevX = this.x;
+        const prevY = this.y;
+        
         // Update target based on gesture direction
         if (direction.x !== 0 || direction.y !== 0) {
             this.targetX += direction.x * CONFIG.catSpeed * 2;
@@ -53,6 +63,39 @@ class Cat {
         this.x += (this.targetX - this.x) * 0.1;
         this.y += (this.targetY - this.y) * 0.1;
         
+        // Calculate velocity for squash/stretch
+        this.velocityX = this.x - prevX;
+        this.velocityY = this.y - prevY;
+        
+        // Squash and stretch based on velocity
+        const speed = Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY);
+        const maxStretch = 0.1; // Maximum stretch amount
+        const stretchFactor = Math.min(speed / 5, maxStretch);
+        
+        // Calculate stretch direction
+        if (speed > 0.5) {
+            // Stretch in movement direction, squash perpendicular
+            const angle = Math.atan2(this.velocityY, this.velocityX);
+            const targetStretchX = 1 + stretchFactor * Math.abs(Math.cos(angle));
+            const targetStretchY = 1 + stretchFactor * Math.abs(Math.sin(angle));
+            const targetSquashX = 1 - stretchFactor * 0.5 * Math.abs(Math.sin(angle));
+            const targetSquashY = 1 - stretchFactor * 0.5 * Math.abs(Math.cos(angle));
+            
+            // Horizontal movement: stretch X, squash Y
+            // Vertical movement: stretch Y, squash X
+            if (Math.abs(this.velocityX) > Math.abs(this.velocityY)) {
+                this.squashX += (targetStretchX - this.squashX) * 0.3;
+                this.squashY += (targetSquashX - this.squashY) * 0.3;
+            } else {
+                this.squashX += (targetSquashY - this.squashX) * 0.3;
+                this.squashY += (targetStretchY - this.squashY) * 0.3;
+            }
+        } else {
+            // Return to normal shape
+            this.squashX += (1 - this.squashX) * 0.15;
+            this.squashY += (1 - this.squashY) * 0.15;
+        }
+        
         // Bobbing animation
         this.bobOffset = Math.sin(Date.now() * this.bobSpeed) * 3;
     }
@@ -60,6 +103,9 @@ class Cat {
     draw(ctx) {
         ctx.save();
         ctx.translate(this.x, this.y + this.bobOffset);
+        
+        // Apply squash and stretch
+        ctx.scale(this.squashX, this.squashY);
         
         // Flip sprite if facing left
         if (!this.facingRight) {
@@ -402,7 +448,7 @@ class Game {
         
         // Load cat sprite
         this.catSprite = new Image();
-        this.catSprite.src = 'dunkeshon_simle_2d_cat_caracter_--ar_43_--profile_rj7bfu1_--v_a1df40df-3922-4cdb-8b19-c3b01efaebfa_2.png';
+        this.catSprite.src = 'cat_sprite.png';
         
         // Load bomb sprite
         this.bombSprite = new Image();
@@ -440,6 +486,57 @@ class Game {
         this.canvas.height = window.innerHeight;
     }
     
+    getRandomPosition(canvasWidth, canvasHeight, usedPositions, minDistance) {
+        const margin = 100; // Keep away from edges
+        const catSafeZone = 150; // Keep away from cat starting position
+        const doorSafeZone = 120; // Keep away from door
+        
+        let attempts = 0;
+        const maxAttempts = 100;
+        
+        while (attempts < maxAttempts) {
+            const x = margin + Math.random() * (canvasWidth - margin * 2);
+            const y = margin + Math.random() * (canvasHeight - margin * 2);
+            
+            // Check if too close to cat starting position
+            const catStartX = canvasWidth * 0.15;
+            const catStartY = canvasHeight * 0.5;
+            if (Math.hypot(x - catStartX, y - catStartY) < catSafeZone) {
+                attempts++;
+                continue;
+            }
+            
+            // Check if too close to door
+            const doorX = canvasWidth * 0.9;
+            const doorY = canvasHeight * 0.5;
+            if (Math.hypot(x - doorX, y - doorY) < doorSafeZone) {
+                attempts++;
+                continue;
+            }
+            
+            // Check if too close to other positions
+            let tooClose = false;
+            for (const pos of usedPositions) {
+                if (Math.hypot(x - pos.x, y - pos.y) < minDistance) {
+                    tooClose = true;
+                    break;
+                }
+            }
+            
+            if (!tooClose) {
+                return { x, y };
+            }
+            
+            attempts++;
+        }
+        
+        // Fallback: return a random position anyway
+        return {
+            x: margin + Math.random() * (canvasWidth - margin * 2),
+            y: margin + Math.random() * (canvasHeight - margin * 2)
+        };
+    }
+    
     startGame() {
         this.setupLevel();
         this.isRunning = true;
@@ -456,44 +553,23 @@ class Game {
         // Create door at right side
         this.door = new Door(w * 0.9, h * 0.5);
         
-        // Create code fragments scattered around
+        // Create code fragments at random positions
         this.fragments = [];
-        const fragmentPositions = [
-            { x: w * 0.3, y: h * 0.3 },
-            { x: w * 0.5, y: h * 0.7 },
-            { x: w * 0.4, y: h * 0.5 },
-            { x: w * 0.7, y: h * 0.35 },
-            { x: w * 0.65, y: h * 0.65 }
-        ];
+        const usedPositions = [];
         
         for (let i = 0; i < CONFIG.totalFragments; i++) {
-            this.fragments.push(new CodeFragment(
-                fragmentPositions[i].x,
-                fragmentPositions[i].y,
-                i
-            ));
+            const pos = this.getRandomPosition(w, h, usedPositions, 100);
+            usedPositions.push(pos);
+            this.fragments.push(new CodeFragment(pos.x, pos.y, i));
         }
         
-        // Create bombs scattered around
+        // Create bombs at random positions
         this.bombs = [];
-        const bombPositions = [
-            { x: w * 0.25, y: h * 0.3 },
-            { x: w * 0.75, y: h * 0.25 },
-            { x: w * 0.55, y: h * 0.4 },
-            { x: w * 0.3, y: h * 0.65 },
-            { x: w * 0.85, y: h * 0.7 },
-            { x: w * 0.65, y: h * 0.75 },
-            { x: w * 0.4, y: h * 0.2 },
-            { x: w * 0.7, y: h * 0.55 }
-        ];
         
         for (let i = 0; i < CONFIG.totalBombs; i++) {
-            this.bombs.push(new Bomb(
-                bombPositions[i].x,
-                bombPositions[i].y,
-                i,
-                this.bombSprite
-            ));
+            const pos = this.getRandomPosition(w, h, usedPositions, 80);
+            usedPositions.push(pos);
+            this.bombs.push(new Bomb(pos.x, pos.y, i, this.bombSprite));
         }
         
         this.explosions = [];
