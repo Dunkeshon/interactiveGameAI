@@ -594,6 +594,26 @@ class Game {
         const margin = 100; // Keep away from edges
         const catSafeZone = 150; // Keep away from cat starting position
         const doorSafeZone = 120; // Keep away from door
+        const uiPadding = 30; // Extra padding around UI elements
+        
+        // Define UI exclusion zones (rectangles)
+        // Format: { x, y, width, height } where x,y is top-left corner
+        const uiExclusionZones = [
+            // Camera panel: top-right, 240x180px, positioned at right:20px, top:20px
+            { x: canvasWidth - 260 - uiPadding, y: 0, width: 260 + uiPadding, height: 200 + uiPadding },
+            
+            // Top-left UI panel (Lives): approximately 150x60px at left:20px, top:20px
+            { x: 0, y: 0, width: 170 + uiPadding, height: 80 + uiPadding },
+            
+            // Top-center UI panel (Keys): approximately 200x60px centered at top:20px
+            { x: (canvasWidth - 220) / 2 - uiPadding, y: 0, width: 220 + uiPadding * 2, height: 80 + uiPadding },
+            
+            // Top-right gesture indicator: 240px wide, positioned below camera at top:220px, right:20px
+            { x: canvasWidth - 260 - uiPadding, y: 200, width: 260 + uiPadding, height: 100 + uiPadding },
+            
+            // Bottom-center instructions panel: approximately 350x80px centered at bottom:20px
+            { x: (canvasWidth - 370) / 2 - uiPadding, y: canvasHeight - 100 - uiPadding, width: 370 + uiPadding * 2, height: 100 + uiPadding }
+        ];
         
         let attempts = 0;
         const maxAttempts = 100;
@@ -618,6 +638,21 @@ class Game {
                 continue;
             }
             
+            // Check if inside any UI exclusion zone
+            let insideExclusionZone = false;
+            for (const zone of uiExclusionZones) {
+                if (x >= zone.x && x <= zone.x + zone.width &&
+                    y >= zone.y && y <= zone.y + zone.height) {
+                    insideExclusionZone = true;
+                    break;
+                }
+            }
+            
+            if (insideExclusionZone) {
+                attempts++;
+                continue;
+            }
+            
             // Check if too close to other positions
             let tooClose = false;
             for (const pos of usedPositions) {
@@ -634,10 +669,11 @@ class Game {
             attempts++;
         }
         
-        // Fallback: return a random position anyway
+        // Fallback: return a random position anyway (but still try to avoid UI)
+        // Use a position in the center-left area which is typically clear
         return {
-            x: margin + Math.random() * (canvasWidth - margin * 2),
-            y: margin + Math.random() * (canvasHeight - margin * 2)
+            x: canvasWidth * 0.3 + Math.random() * (canvasWidth * 0.3),
+            y: canvasHeight * 0.3 + Math.random() * (canvasHeight * 0.4)
         };
     }
     
