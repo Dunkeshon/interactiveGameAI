@@ -714,7 +714,31 @@
 
   <canvas id="canvas"></canvas>
 
+  <audio id="ambienceMusic" autoplay loop>
+    <source src="mfcc-mystery-mystic-mystical-music-279834.mp3" type="audio/mpeg">
+  </audio>
+
+  <audio id="correctSound">
+    <source src="freesound_community-mystical-wind-chimes-transition-fx-6327.mp3" type="audio/mpeg">
+  </audio>
+
+  <audio id="wrongSound">
+    <source src="wefgf-uh-oh-433108.mp3" type="audio/mpeg">
+  </audio>
+
+  <audio id="victorySound">
+    <source src="scratchonix-victory-chime-366449.mp3" type="audio/mpeg">
+  </audio>
+
   <script>
+    // Set ambience music volume to a reasonable level
+    document.addEventListener('DOMContentLoaded', () => {
+      const ambienceMusic = document.getElementById('ambienceMusic');
+      if (ambienceMusic) {
+        ambienceMusic.volume = 0.3;
+      }
+    });
+
     let LM_STUDIO_BASE = "http://127.0.0.1:1234";
     let MODEL = "qwen/qwen3-vl-4b";
     let currentIntervalMs = 10_000;
@@ -890,6 +914,13 @@
         updateSpirit();
         spiritBlob.classList.add("spirit-correct");
         riddleFeedback.classList.add("correct");
+        
+        // Play success sound effect
+        const correctSound = document.getElementById("correctSound");
+        if (correctSound) {
+          correctSound.currentTime = 0;
+          correctSound.play().catch(e => console.log("Sound play failed:", e));
+        }
 
         if (correctCount >= 3) {
           gameUI.style.display = "none";
@@ -901,7 +932,14 @@
           intervalId = null;
 
           nextCapture.classList.remove("capturing");
+          nextCapture.classList.remove("capturing");
           nextCapture.textContent = "CONGRATULATIONS — THE SPIRIT IS AWAKE!";
+          // Play victory chime once
+          const victorySound = document.getElementById("victorySound");
+          if (victorySound) {
+            victorySound.currentTime = 0;
+            victorySound.play().catch((e) => console.log("Victory sound failed:", e));
+          }
           // Also show a final spirit message
           const spiritMessageEl = document.getElementById("spiritMessage");
           if (spiritMessageEl) spiritMessageEl.textContent = "The spirit gratefully accepts your offering";
@@ -935,6 +973,13 @@
         if (spiritMessageElWrong) {
           spiritMessageElWrong.textContent = "The spirit's glow reddens and shivers with doubt";
           spiritMessageElWrong.classList.add("angry");
+        }
+        
+        // Play wrong sound effect
+        const wrongSound = document.getElementById("wrongSound");
+        if (wrongSound) {
+          wrongSound.currentTime = 0;
+          wrongSound.play().catch(e => console.log("Sound play failed:", e));
         }
         setTimeout(() => {
           spiritBlob.classList.remove("spirit-wrong");
