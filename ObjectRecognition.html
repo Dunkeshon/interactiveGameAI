@@ -914,7 +914,7 @@
         updateSpirit();
         spiritBlob.classList.add("spirit-correct");
         riddleFeedback.classList.add("correct");
-        
+
         // Play success sound effect
         const correctSound = document.getElementById("correctSound");
         if (correctSound) {
@@ -974,7 +974,7 @@
           spiritMessageElWrong.textContent = "The spirit's glow reddens and shivers with doubt";
           spiritMessageElWrong.classList.add("angry");
         }
-        
+
         // Play wrong sound effect
         const wrongSound = document.getElementById("wrongSound");
         if (wrongSound) {
@@ -1074,7 +1074,7 @@
       }
 
       setDetectionResult(null);
-      nextCapture.textContent = "Analyzing…";
+      nextCapture.textContent = "Analysing your answer...";
 
       try {
         const finalResult = await askDetectItems(dataUrl);
@@ -1196,6 +1196,7 @@
 
       setDetectionResult(null);
       nextCapture.classList.add("capturing");
+      nextCapture.textContent = "Analysing your answer...";
       const spiritMessageEl = document.getElementById("spiritMessage");
       if (spiritMessageEl) spiritMessageEl.textContent = "The spirit peers at your object…";
 
